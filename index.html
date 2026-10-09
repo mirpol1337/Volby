@@ -2293,15 +2293,37 @@ function scanDetect(g, gi, w, h) {
         if (l && k - l.e <= 2) { l.e = k; l.sw += C[k]; l.sy += C[k] * k; l.mx = Math.max(l.mx, C[k]); }
         else bands.push({ s: k, e: k, sw: C[k], sy: C[k] * k, mx: C[k] });
       }
-      bands.forEach(bd => { bd.y = bd.sy / bd.sw; });
+      bands.forEach(bd => { bd.y = bd.sy / bd.sw; bd.pos = bd.e - bd.s >= 3 ? [bd.s + 1, bd.y, bd.e - 1] : [bd.y]; });
       const top = bands[0], bot = bands[bands.length - 1];
-      if (!top || top === bot || top.y > s + len * 0.35 || bot.y < e - len * 0.35) continue;
-      // split at strong full-width edges (touching boxes, or a frame line just above a box);
-      // too-close pairs of edges are skipped below
-      const cuts = [top, ...bands.slice(1, -1).filter(bd => bd.mx >= 0.85), bot];
-      for (let k = 0; k + 1 < cuts.length; k++) {
-        let yt = cuts[k].y, yb = cuts[k + 1].y;
-        if (yb - yt < H0 * 0.55) continue;
+      // (a single band as high as a box: a box filled by a heavy cross on a small photo)
+      const solid = bd => bd.e - bd.s >= H0 * 0.6 && bd.e - bd.s <= H0 * 1.3;
+      if (!top || (top === bot && !solid(top)) || top.s > s + len * 0.35 || bot.e < e - len * 0.35) continue;
+      // choose boxes between edge bands: as many non-overlapping boxes of a plausible height as
+      // possible (candidate box ≈ H0; party box ≈ 2·H0, penalised so that two candidate boxes win),
+      // then the closest heights. A band in the middle of a box (the flat centre of a cross) is
+      // skipped, touching boxes share a band; a band thickened by a stroke also offers its outer rows
+      // inner bands must be (almost) full rows – the flat centre of a cross in the party box is not
+      const nodes = bands.flatMap((bd, bi) => bd === top || bd === bot || bd.mx >= 0.8 ? bd.pos.map(y => ({ bi, y })) : []); // in y order
+      const F = nodes.map(() => null); // best chain of boxes whose last box ends at node j
+      let bestEnd = null;
+      for (let j = 0; j < nodes.length; j++) {
+        for (let i = 0; i < j; i++) {
+          const bi = nodes[i].bi, same = bi === nodes[j].bi;
+          if (same && (!solid(bands[bi]) || nodes[i].y !== bands[bi].pos[0] || nodes[j].y !== bands[bi].pos[2])) continue;
+          const r = (nodes[j].y - nodes[i].y) / H0;
+          const cost = r >= 0.78 && r <= 1.3 ? Math.abs(r - 1) : r >= 1.5 && r <= 2.8 ? 0.5 + 0.3 * Math.abs(r / 2 - 1) : -1;
+          if (cost < 0) continue;
+          // previous box ends at or above this one's top edge (touching boxes share a band)
+          let prev = null; for (let k = 0; k <= i; k++) if (F[k] && (!prev || F[k].sc > prev.sc)) prev = F[k];
+          const sc = (prev ? prev.sc : 0) + 10 - cost;
+          if (!F[j] || sc > F[j].sc) F[j] = { sc, bx: { yt: nodes[i].y, yb: nodes[j].y }, prev };
+        }
+        if (F[j] && (!bestEnd || F[j].sc > bestEnd.sc)) bestEnd = F[j];
+      }
+      const chosen = [];
+      for (let q = bestEnd; q; q = q.prev) chosen.unshift(q.bx);
+      for (const bx of chosen) {
+        let yt = bx.yt, yb = bx.yb;
         // snap the predicted sides and edges onto the printed lines
         const [dl, cl] = snap(d => { let n = 0, tot = 0; for (let y = Math.ceil(yt + 2); y <= yb - 2; y++, tot++) n += isDark(xl(y) + d, y); return tot ? n / tot : 0; }, 3);
         const [dr, cr] = snap(d => { let n = 0, tot = 0; for (let y = Math.ceil(yt + 2); y <= yb - 2; y++, tot++) n += isDark(xr(y) + d, y); return tot ? n / tot : 0; }, 3);
@@ -2362,14 +2384,29 @@ function scanDetect(g, gi, w, h) {
       while (hi < boxes.length - 1 && boxes[hi + 1].y0 - boxes[hi].y1 <= H0 * 10) hi++;
       list = boxes.slice(lo, hi + 1);
     }
-    // party box: first, taller box; fall back to a seed above the list if the scan missed it
-    let head = list[0] && list[0].h >= H0 * 1.3 ? list.shift() : null;
+    // party box: the ~square box followed by the most candidate boxes (anything above it is header
+    // text or the edge of the photo); fall back to a seed above the list if the scan missed it
+    const tall = b => b.h >= H0 * 1.3;
+    let hi = -1, hn = -1;
+    list.forEach((b, i) => {
+      if (!tall(b) || b.h / b.w < 0.6 || b.h / b.w > 1.5) return;
+      let n = 0; while (i + 1 + n < list.length && !tall(list[i + 1 + n])) n++;
+      if (n > hn) { hi = i; hn = n; }
+    });
+    if (hi > 0) rejected.push(...list.splice(0, hi));
+    let head = hi >= 0 ? list.shift() : list[0] && tall(list[0]) ? (rejected.push(list.shift()), null) : null;
     if (!head) {
       const hs = c.seeds.filter(sd => sd.h >= H0 * 1.3 && (!list[0] || sd.cy < list[0].cy));
       if (hs.length) head = hs[hs.length - 1];
     }
+    if (head && (head.h / head.w < 0.6 || head.h / head.w > 1.5)) { rejected.push(head); head = null; } // party box is ~square
     const cands = list.filter(b => b.h <= H0 * 1.6 || (rejected.push(b), false));
-    if (!cands.length || (!head && cands.length < 3)) { rejected.push(...c.seeds); continue; }
+    // a real column: candidate boxes of the usual height, most with clear printed sides
+    // (a "column" assembled from letters of the candidate names has neither)
+    const hm = med(cands.map(b => b.h)) / H0;
+    if (!cands.length || (!head && cands.length < 3) || hm < 0.75 || hm > 1.3 || cands.filter(b => b.sp).length < cands.length * 0.4) {
+      rejected.push(...c.seeds); continue;
+    }
     found.push({ head, cands, x: xl((head || cands[0]).cy), y: (head || cands[0]).cy, n: cands.length + (head ? 1 : 0) });
   }
   // the same column reached from two seed chains → keep the fuller one
