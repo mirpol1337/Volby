@@ -2267,7 +2267,8 @@ function scanDetect(g, gi, w, h) {
     const best = Math.max(...cs.map(c => c[1])); if (best < 0.6) return [0, best];
     const on = cs.filter(c => c[1] >= best - 0.05); return [on.reduce((s, c) => s + c[0], 0) / on.length, best];
   };
-  const scanStrip = (xl, xr, rAt, m, t) => {
+  // Hf(y): expected candidate box height (perspective makes it change along the column)
+  const scanStrip = (xl, xr, rAt, m, t, Hf) => {
     const both = new Uint8Array(h), C = new Float32Array(h);
     for (let y = 0; y < h; y++) {
       const a = Math.round(xl(y)), b = Math.round(xr(y)), r = rAt(y);
@@ -2283,8 +2284,8 @@ function scanDetect(g, gi, w, h) {
       const s = y; let e = y;
       for (;;) { if (e + 1 < h && both[e + 1]) e++; else if (e + 2 < h && both[e + 2]) e += 2; else break; }
       y = e + 1;
-      const len = e - s + 1;
-      if (len < H0 * 0.5) continue;
+      const len = e - s + 1, H1 = Hf((s + e) / 2);
+      if (len < H1 * 0.5) continue;
       // edge bands inside / just around the run
       const bands = [];
       for (let k = Math.max(0, s - 2); k <= Math.min(h - 1, e + 2); k++) {
@@ -2296,12 +2297,12 @@ function scanDetect(g, gi, w, h) {
       bands.forEach(bd => { bd.y = bd.sy / bd.sw; bd.pos = bd.e - bd.s >= 3 ? [bd.s + 1, bd.y, bd.e - 1] : [bd.y]; });
       const top = bands[0], bot = bands[bands.length - 1];
       // (a single band as high as a box: a box filled by a heavy cross on a small photo)
-      const solid = bd => bd.e - bd.s >= H0 * 0.6 && bd.e - bd.s <= H0 * 1.3;
+      const solid = bd => bd.e - bd.s >= H1 * 0.6 && bd.e - bd.s <= H1 * 1.3;
       if (!top || (top === bot && !solid(top)) || top.s > s + len * 0.35 || bot.e < e - len * 0.35) continue;
       // choose boxes between edge bands: as many separate boxes of a plausible height as possible
-      // (candidate box ≈ H0, party box ≈ 2·H0), then the closest heights. A band in the middle of a box (the flat centre of a cross) is skipped; a band
-      // thickened by a stroke also offers its outer rows
-      // inner bands must be (almost) full rows – the flat centre of a cross in the party box is not
+      // (candidate box ≈ H1, party box ≈ 2·H1), then the closest heights. A band thickened by a
+      // stroke also offers its outer rows. Inner bands must be (almost) full rows – the flat centre
+      // of a cross in the party box is not
       const nodes = bands.flatMap((bd, bi) => bd === top || bd === bot || bd.mx >= 0.8 ? bd.pos.map(y => ({ bi, y })) : []); // in y order
       const F = nodes.map(() => null); // best chain of boxes whose last box ends at node j
       let bestEnd = null;
@@ -2309,12 +2310,12 @@ function scanDetect(g, gi, w, h) {
         for (let i = 0; i < j; i++) {
           const bi = nodes[i].bi, same = bi === nodes[j].bi;
           if (same && (!solid(bands[bi]) || nodes[i].y !== bands[bi].pos[0] || nodes[j].y !== bands[bi].pos[2])) continue;
-          const r = (nodes[j].y - nodes[i].y) / H0;
+          const r = (nodes[j].y - nodes[i].y) / H1;
           // party box: small bonus, so that a crossed party box is not taken for one candidate box
           // made of its upper half (the centre of the cross looks like an edge) – unless it would
           // swallow a whole box (two or more edges inside)
           let inner = 0; for (let k = bi + 1; k < nodes[j].bi; k++) if (bands[k].mx >= 0.8) inner++;
-          const cost = r >= 0.78 && r <= 1.3 ? Math.abs(r - 1) : r >= 1.5 && r <= 2.8 ? 0.3 * Math.abs(r / 2 - 1) - 0.5 + 0.7 * Math.max(0, inner - 1) : NaN;
+          const cost = r >= 0.78 && r <= 1.3 ? Math.abs(r - 1) : r >= 1.5 && r <= 2.8 ? 0.3 * Math.abs(r / 2 - 1) - (Math.abs(r / 2 - 1) < 0.15 ? 0.5 : 0) + 0.7 * Math.max(0, inner - 1) : NaN;
           if (Number.isNaN(cost)) continue;
           // previous box ends at an earlier band: on this ballot the boxes never touch, so a band is
           // never both the bottom of one box and the top of the next
@@ -2334,7 +2335,7 @@ function scanDetect(g, gi, w, h) {
         const L = y => xl(y) + dl, Rr = y => xr(y) + dr, xc = (L(yt) + Rr(yt)) / 2;
         const edge = y0 => snap(d => { let n = 0, tot = 0; for (let x = Math.ceil(L(y0) + 2); x <= Rr(y0) - 2; x++, tot++) n += isDark(x, y0 + d + m * (x - xc)); return tot ? n / tot : 0; }, 2)[0];
         yt += edge(yt); yb += edge(yb);
-        if (yb - yt < H0 * 0.7) continue; // e.g. the gap between two boxes joined by cross strokes
+        if (yb - yt < H1 * 0.7) continue; // e.g. the gap between two boxes joined by cross strokes
         const pt = (yy, xx) => [xx, yy + m * (xx - xc)], ym = (yt + yb) / 2;
         boxes.push(mkBox([pt(yt, L(yt)), pt(yt, Rr(yt)), pt(yb, Rr(yb)), pt(yb, L(yb))], t, m,
           { sp: cl >= 0.8 && cr >= 0.8 ? [[ym, L(ym), 0], [ym, Rr(ym), 1]] : null }));
@@ -2365,16 +2366,27 @@ function scanDetect(g, gi, w, h) {
     }
     // scan; then refit the model on the snapped sides of the boxes found and scan again
     // (follows curved / perspective columns), side tolerance grows away from the fitted range
-    let boxes = [];
+    // the box height is refitted too (linear in y, within ±25 % of the typical one)
+    let boxes = [], Hf = () => H0;
     for (let pass = 0; pass < 3; pass++) {
-      const Mp = M, rAt = y => Math.round(Math.min(W0 * 0.25, r0 + 0.05 * Math.max(0, Mp.y0 - y, y - Mp.y1)));
-      const bx = scanStrip(y => Mp.x(0, y), y => Mp.x(1, y), rAt, m, c.t);
+      const Mp = M, Hp = Hf, rAt = y => Math.round(Math.min(W0 * 0.25, r0 + 0.05 * Math.max(0, Mp.y0 - y, y - Mp.y1)));
+      const bx = scanStrip(y => Mp.x(0, y), y => Mp.x(1, y), rAt, m, c.t, Hp);
       if (pass && bx.length < boxes.length) break;
       boxes = bx;
-      const good = boxes.filter(b => b.sp && Math.abs(b.w - W0) <= W0 * 0.12 && b.h <= H0 * 1.4);
+      const good = boxes.filter(b => b.sp && Math.abs(b.w - W0) <= W0 * 0.12 && b.h <= Hp(b.cy) * 1.4);
       const M2 = modelFor([...sd, ...good], [...seedP, ...good.flatMap(b => b.sp)]);
-      if (!M2 || M2.res > W0 * 0.25) break;
-      M = M2;
+      const hb = boxes.filter(b => b.sp && b.h >= Hp(b.cy) * 0.78 && b.h <= Hp(b.cy) * 1.3);
+      let H2 = Hp;
+      if (hb.length >= 2) {
+        const n = hb.length, my = hb.reduce((a, b) => a + b.cy, 0) / n, mh = hb.reduce((a, b) => a + b.h, 0) / n;
+        const syy = hb.reduce((a, b) => a + (b.cy - my) ** 2, 0), span = Math.max(...hb.map(b => b.cy)) - Math.min(...hb.map(b => b.cy));
+        const k = n >= 4 && span >= H0 * 4 ? hb.reduce((a, b) => a + (b.cy - my) * (b.h - mh), 0) / syy : 0;
+        H2 = y => Math.min(H0 * 1.25, Math.max(H0 * 0.8, mh + k * (y - my)));
+      }
+      const okM = M2 && M2.res <= W0 * 0.25;
+      if (!okM && boxes.every(b => Math.abs(H2(b.cy) - Hp(b.cy)) < H0 * 0.05)) break;
+      if (okM) M = M2;
+      Hf = H2;
     }
     const xl = y => M.x(0, y);
     // keep the run of boxes connected to the seeds (gaps up to ~10 box heights)
@@ -2390,7 +2402,7 @@ function scanDetect(g, gi, w, h) {
     }
     // party box: the ~square box followed by the most candidate boxes (anything above it is header
     // text or the edge of the photo); fall back to a seed above the list if the scan missed it
-    const tall = b => b.h >= H0 * 1.3;
+    const tall = b => b.h >= Hf(b.cy) * 1.3;
     let hi = -1, hn = -1;
     list.forEach((b, i) => {
       if (!tall(b) || b.h / b.w < 0.6 || b.h / b.w > 1.5) return;
@@ -2404,10 +2416,10 @@ function scanDetect(g, gi, w, h) {
       if (hs.length) head = hs[hs.length - 1];
     }
     if (head && (head.h / head.w < 0.6 || head.h / head.w > 1.5)) { rejected.push(head); head = null; } // party box is ~square
-    const cands = list.filter(b => b.h <= H0 * 1.6 || (rejected.push(b), false));
+    const cands = list.filter(b => b.h <= Hf(b.cy) * 1.6 || (rejected.push(b), false));
     // a real column: candidate boxes of the usual height, most with clear printed sides
     // (a "column" assembled from letters of the candidate names has neither)
-    const hm = med(cands.map(b => b.h)) / H0;
+    const hm = med(cands.map(b => b.h / Hf(b.cy)));
     if (!cands.length || (!head && cands.length < 3) || hm < 0.75 || hm > 1.3 || cands.filter(b => b.sp).length < cands.length * 0.4) {
       rejected.push(...c.seeds); continue;
     }
