@@ -5,6 +5,7 @@
   "description": "Mobilní pomůcka pro sčítání hlasů do Zastupitelstva hl. m. Prahy",
   "scripts": {
     "test": "node tests/app.test.js",
+    "test:scan": "node tests/scan.test.js",
     "icons": "python3 tools/make_icons.py"
   }
 }

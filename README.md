@@ -12,6 +12,10 @@ Jednoduchá webová aplikace do telefonu pro okrskové volební komise: pomáhá
 
 Aplikace je jen pomůcka – závazný je zápis okrskové volební komise.
 
+## Skenovat foto (experiment)
+
+Tlačítko **Skenovat foto** u pole pro kód předvyplní křížky z fotky jedné stránky lístku. Vyfoťte stránku zpředu, celé sloupce včetně políček stran, rovně a při dobrém světle, a zvolte stranu v **levém** sloupci fotky (další sloupce = další strany v pořadí). Aplikace ukáže náhled s rozpoznanými políčky (zeleně prázdné, purpurově s křížkem, oranžově nejisté) a upozorní, když počet políček nesedí s počtem kandidátů. **Použít** přenese křížky na rozpracovaný lístek (jen u stran z fotky) – nic se neukládá, lístek zkontrolujete a uložíte jako obvykle. Rozpoznávání běží jen v telefonu (bez sítě) a je pomocné: nejisté křížky se nepřenášejí, vždy porovnejte s papírem.
+
 ## Zveřejnění na GitHub Pages
 
 1. Na GitHubu otevřete repozitář → **Settings** → **Pages**.
@@ -48,6 +52,12 @@ Automatické testy procházejí aplikaci přes uživatelské rozhraní v prohlí
 npm test
 # nebo jen část testů podle názvu:
 node tests/app.test.js záloha
+```
+
+Testy funkce Skenovat foto (kreslí si vlastní syntetické fotky lístku s křížky, natočené, tmavší i zmenšené):
+
+```sh
+npm run test:scan
 ```
 
 Je potřeba Node.js a balíček `playwright` s nainstalovaným Chromiem (`npm i -D playwright && npx playwright install chromium`). Testy vypíšou souhrn a při chybě skončí nenulovým kódem.

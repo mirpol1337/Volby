@@ -2022,9 +2022,12 @@ renderAll();
    Pre-fills the current selection from a photo of one ballot page. It never saves:
    the marks are merged into `sel` and the user reviews them and taps Uložit as usual.
    Pipeline (plain JS on a canvas): downscale → gray → adaptive threshold → long horizontal
-   runs = box top/bottom edges → pair edges with dark side edges into (slightly rotated)
-   rectangles → chain rectangles into columns by x → first, taller box of a column = party box,
-   the rest = candidates 1..n → share of dark pixels inside each box, border excluded. */
+   runs = box top/bottom edges → pair edges with dark side edges into clean (slightly rotated)
+   rectangles = seeds → chain seeds into columns, estimate the box size from clean seeds →
+   fit each column's side lines (slope, perspective) → scan the column strip: rows dark at both
+   side lines, full-width rows = edges, pick boxes of the expected height (crosses can't split
+   or merge them) → the ~square box heading the most boxes = party box, the rest = candidates
+   1..n → share of dark pixels inside each box, border excluded (and in its centre). */
 /* scan-core:start */
 function scanDetect(g, gi, w, h) {
   // g: max(R,G,B) – finds the black printed boxes and ignores the magenta stripe; gi: luminance – measures ink
@@ -2285,10 +2288,9 @@ function scanDetect(g, gi, w, h) {
       const s = y; let e = y;
       for (;;) { if (e + 1 < h && both[e + 1]) e++; else if (e + 2 < h && both[e + 2]) e += 2; else break; }
       y = e + 1;
-      const len = e - s + 1, H1 = Hf((s + e) / 2), k0 = Math.max(0, s - 2, prevE + 3);
-      prevE = e;
+      const len = e - s + 1, H1 = Hf((s + e) / 2), k0 = Math.max(0, s - 2, prevE + 1);
       if (len < H1 * 0.5) continue;
-      // edge bands inside / just around the run (not the ones of the previous run)
+      // edge bands inside / just around the run (not the bottom edge of the previous box)
       const bands = [];
       for (let k = k0; k <= Math.min(h - 1, e + 2); k++) {
         if (C[k] < 0.6) continue;
@@ -2323,12 +2325,13 @@ function scanDetect(g, gi, w, h) {
           // never both the bottom of one box and the top of the next
           let prev = null; for (let k = 0; k < i && nodes[k].bi < bi; k++) if (F[k] && (!prev || F[k].sc > prev.sc)) prev = F[k];
           const sc = (prev ? prev.sc : 0) + 10 - cost;
-          if (!F[j] || sc > F[j].sc) F[j] = { sc, bx: { yt: nodes[i].y, yb: nodes[j].y }, prev };
+          if (!F[j] || sc > F[j].sc) F[j] = { sc, bx: { yt: nodes[i].y, yb: nodes[j].y, be: nodes[j].bi }, prev };
         }
         if (F[j] && (!bestEnd || F[j].sc > bestEnd.sc)) bestEnd = F[j];
       }
       const chosen = [];
       for (let q = bestEnd; q; q = q.prev) chosen.unshift(q.bx);
+      if (chosen.length) prevE = bands[chosen[chosen.length - 1].be].e;
       for (const bx of chosen) {
         let yt = bx.yt, yb = bx.yb;
         // snap the predicted sides and edges onto the printed lines
