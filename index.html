@@ -1,0 +1,860 @@
+<!doctype html><!--wrap-->
+<html lang="cs"><!--wrap-->
+<head><!--wrap-->
+<meta charset="utf-8"><!--wrap-->
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><!--wrap-->
+<meta name="theme-color" content="#c4306c"><!--wrap-->
+<meta name="mobile-web-app-capable" content="yes"><!--wrap-->
+<meta name="apple-mobile-web-app-capable" content="yes"><!--wrap-->
+<title>Sčítání hlasů Praha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one column, ballot-like cards; sticky header with tabs, fixed action bar on the ballot tab. */
+:root {
+  --paper: #e9ebee;      /* desk / page */
+  --sheet: #f7f7f5;      /* the ballot paper */
+  --ink: #1c1e23;
+  --muted: #5d6270;
+  --rule: #c5c9d1;
+  --stripe: #c4306c;     /* the magenta edge of the Prague ballot */
+  --stripe-soft: #f6dbe6;
+  --ok: #1d7347;
+  --ok-soft: #dcefe3;
+  --bad: #b22a22;
+  --bad-soft: #f8dedb;
+  --warn: #8a5a00;
+  --font-body: "Libre Franklin", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #131418; --sheet: #1d1f25; --ink: #e9eaee; --muted: #a0a5b2; --rule: #353945;
+    --stripe: #ec6c9d; --stripe-soft: #44202f; --ok: #5cc98d; --ok-soft: #173826;
+    --bad: #f07a70; --bad-soft: #42201d; --warn: #e3b24e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #131418; --sheet: #1d1f25; --ink: #e9eaee; --muted: #a0a5b2; --rule: #353945;
+  --stripe: #ec6c9d; --stripe-soft: #44202f; --ok: #5cc98d; --ok-soft: #173826;
+  --bad: #f07a70; --bad-soft: #42201d; --warn: #e3b24e; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--paper); color: var(--ink); }
+body { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.4; -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--stripe); outline-offset: 2px; }
+.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: var(--paper); border-bottom: 1px solid var(--rule);
+  padding: 10px 16px 0;
+}
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.brand h1 span { color: var(--stripe); }
+.brand small { color: var(--muted); font-size: 12px; text-align: right; }
+nav.tabs { display: flex; gap: 4px; margin-top: 8px; overflow-x: auto; }
+nav.tabs button {
+  flex: 1 0 auto; background: none; border: 0; border-bottom: 3px solid transparent;
+  padding: 8px 10px; font-weight: 600; color: var(--muted); font-size: 14px;
+}
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--stripe); }
+
+main { padding: 12px 16px 24px; max-width: 760px; margin: 0 auto; }
+main.with-bar { padding-bottom: 170px; }
+.view { display: flex; flex-direction: column; gap: 12px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 8px 0 0; font-weight: 700; }
+p.hint { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* quick entry */
+.quick { display: flex; gap: 8px; }
+.quick input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--sheet); }
+.btn {
+  border: 1px solid var(--rule); background: var(--sheet); border-radius: var(--radius);
+  padding: 10px 14px; font-weight: 600; white-space: nowrap;
+}
+.btn.primary { background: var(--stripe); border-color: var(--stripe); color: #fff; }
+.btn.danger { color: var(--bad); border-color: var(--bad); }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.search-results { display: flex; flex-direction: column; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--sheet); overflow: hidden; }
+.search-results:empty { display: none; }
+
+/* ballot */
+.ballot { background: var(--sheet); border: 1px solid var(--rule); border-left: 8px solid var(--stripe); border-radius: var(--radius); }
+.party + .party { border-top: 1px solid var(--rule); }
+.phead { display: flex; align-items: stretch; }
+.box {
+  position: relative; flex: 0 0 auto; width: 30px; height: 30px; margin: 10px 4px 10px 10px;
+  border: 2px solid var(--ink); background: var(--sheet); border-radius: 2px; padding: 0;
+}
+.box.sm { width: 24px; height: 24px; margin: 0; }
+.on > .box::before, .on > .box::after, .box.on::before, .box.on::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 120%; height: 3px; background: var(--stripe);
+  border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg);
+}
+.on > .box::after, .box.on::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.pname { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 10px 12px 10px 6px; display: flex; flex-direction: column; gap: 2px; }
+.pname b { font-weight: 800; font-size: 15px; text-transform: uppercase; line-height: 1.25; overflow-wrap: anywhere; }
+.pname .meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.pname .meta .mark { color: var(--stripe); font-weight: 700; }
+.party.marked { background: var(--stripe-soft); }
+.cands { list-style: none; margin: 0; padding: 0 0 8px; }
+.crow {
+  display: grid; grid-template-columns: 24px 2.2em 1fr auto; align-items: start; gap: 10px;
+  width: 100%; text-align: left; background: none; border: 0; padding: 8px 12px 8px 14px;
+}
+.crow + .crow { border-top: 1px dashed var(--rule); }
+.crow .cn { font-family: var(--font-mono); color: var(--muted); padding-top: 2px; text-align: right; }
+.crow .ctext { min-width: 0; }
+.crow .cname { font-weight: 700; }
+.crow .cinfo { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.crow.ignored .cname { text-decoration: line-through; color: var(--muted); }
+.vote { font-family: var(--font-mono); font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; align-self: center; }
+.vote.yes { background: var(--ok-soft); color: var(--ok); }
+.vote.no { color: var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 10px 14px; }
+
+/* batch */
+details.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); }
+details.panel > summary { padding: 12px 14px; font-weight: 700; cursor: pointer; }
+details.panel > .inner { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row > select, .row > input { padding: 9px 10px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper); min-width: 0; }
+.row > select { flex: 1 1 180px; }
+.row > input[type=number] { width: 90px; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+label.field input, textarea { padding: 9px 10px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--sheet); font-weight: 400; }
+textarea { width: 100%; min-height: 220px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; }
+
+/* action bar */
+.actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--sheet); border-top: 1px solid var(--rule);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 18px rgb(0 0 0 / 0.08);
+}
+.actionbar .wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 28px; }
+.pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.idle { background: var(--paper); color: var(--muted); }
+.status .txt { font-size: 13px; min-width: 0; flex: 1; }
+.status .note { font-size: 12px; color: var(--warn); width: 100%; }
+.actions { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; }
+.sheet-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* results */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.tile { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px 12px; }
+.tile .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.tile .v { font-family: var(--font-mono); font-size: 24px; font-weight: 600; }
+.tile.bad .v { color: var(--bad); }
+.table-wrap { overflow-x: auto; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+td.r, th.r { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.prow { cursor: pointer; }
+tr.prow td:nth-child(2) { font-weight: 700; }
+tr.crow-r td { font-size: 13px; background: var(--paper); }
+.bar { height: 4px; background: var(--stripe); border-radius: 2px; margin-top: 4px; }
+
+/* history */
+.hist { display: flex; flex-direction: column; background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); }
+.hitem { display: flex; gap: 10px; align-items: center; padding: 10px 12px; flex-wrap: wrap; }
+.hitem + .hitem { border-top: 1px solid var(--rule); }
+.hitem .hmain { flex: 1; min-width: 0; }
+.hitem .hmain .t { font-size: 12px; color: var(--muted); }
+.hitem .btns { display: flex; gap: 6px; }
+
+.empty { padding: 20px; text-align: center; color: var(--muted); }
+.msg { font-size: 13px; padding: 8px 10px; border-radius: var(--radius); }
+.msg.ok { background: var(--ok-soft); color: var(--ok); }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.msg:empty { display: none; }
+.rules { font-size: 13px; color: var(--muted); }
+.rules li + li { margin-top: 4px; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 50;
+  bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--paper); padding: 10px 14px; border-radius: var(--radius);
+  display: flex; gap: 12px; align-items: center; font-size: 14px; max-width: calc(100% - 32px);
+}
+.toast button { background: none; border: 0; color: var(--stripe-soft); font-weight: 700; text-decoration: underline; }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: rise .18s ease-out; } @keyframes rise { from { opacity: 0; transform: translate(-50%, 8px); } } }
+</style>
+</head><!--wrap-->
+<body><!--wrap-->
+
+<header class="top">
+  <div class="brand">
+    <h1>Sčítání <span>Praha</span></h1>
+    <small id="hdrInfo"></small>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="ballot" aria-selected="true">Lístek</button>
+    <button role="tab" data-tab="history" aria-selected="false">Zadané</button>
+    <button role="tab" data-tab="results" aria-selected="false">Výsledky</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Kandidáti</button>
+  </nav>
+</header>
+
+<main id="main" class="with-bar">
+  <!-- BALLOT -->
+  <section class="view" id="v-ballot">
+    <div class="quick">
+      <input id="code" type="text" inputmode="text" autocomplete="off" placeholder="Kód (3 · 3.12 · 3.1-10) nebo příjmení">
+      <button class="btn" id="codeGo">Označit</button>
+    </div>
+    <div class="search-results" id="searchRes"></div>
+    <div class="ballot" id="ballot"></div>
+    <details class="panel" id="batchPanel">
+      <summary>Hromadně: lístky jen s křížkem u strany</summary>
+      <div class="inner">
+        <p class="hint">Komise obvykle nejdřív roztřídí lístky, kde je označena jen jedna strana. Spočítejte hromádku a zadejte ji najednou.</p>
+        <div class="row">
+          <select id="batchParty" aria-label="Strana"></select>
+          <input id="batchCount" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Počet lístků">
+          <button class="btn primary" id="batchAdd">Přidat</button>
+        </div>
+        <div class="row">
+          <span class="hint" style="flex:1 1 160px">Neplatné lístky (hromádka):</span>
+          <input id="batchInvCount" type="number" min="1" step="1" inputmode="numeric" value="1" aria-label="Počet neplatných lístků">
+          <button class="btn danger" id="batchInvAdd">Přidat neplatné</button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="view" id="v-history" hidden>
+    <h2>Zadané lístky</h2>
+    <div class="hist" id="hist"></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="view" id="v-results" hidden>
+    <div class="tiles" id="tiles"></div>
+    <h2>Hlasy pro strany</h2>
+    <p class="hint">Hlasy strany = součet hlasů jejích kandidátů. Klepnutím na stranu zobrazíte kandidáty.</p>
+    <div class="table-wrap"><table id="resTable"></table></div>
+    <div id="invReasons"></div>
+    <div class="row">
+      <button class="btn" id="copyCsv">Kopírovat výsledky (CSV)</button>
+      <button class="btn" id="dlCsv">Stáhnout CSV</button>
+    </div>
+    <textarea id="csvOut" readonly hidden aria-label="CSV výsledky"></textarea>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="v-settings" hidden>
+    <h2>Volba</h2>
+    <label class="field">Počet volených členů zastupitelstva
+      <input id="seats" type="number" min="1" step="1" inputmode="numeric">
+    </label>
+
+    <h2>Kandidátní listiny</h2>
+    <p class="hint">Řádek začínající <span class="mono">#</span> je strana (s vylosovaným číslem), řádek začínající číslem kandidát (pořadí na listině). Za jménem může po čárce následovat věk, povolání atd. Lze vložit i tabulku zkopírovanou z volby.cz – tabulátory se převedou na čárky.</p>
+    <textarea id="listText" spellcheck="false" aria-label="Kandidátní listiny"></textarea>
+    <div class="row">
+      <button class="btn primary" id="applyList">Použít seznam</button>
+      <button class="btn" id="resetSample">Vrátit ukázku z lístku</button>
+    </div>
+    <div class="msg" id="listMsg"></div>
+
+    <details class="panel">
+      <summary>Načíst otevřená data z volby.cz (XML)</summary>
+      <div class="inner">
+        <p class="hint">Stáhněte z volby.cz/opendata registr kandidátů (soubor <span class="mono">kvrk.xml</span>) a případně registr stran (<span class="mono">kvros.xml</span>) a vyberte je zde. Načtou se jen řádky zastupitelstva s níže uvedeným kódem (hl. m. Praha = 554782). Výsledek se vloží do textu výše, kde ho zkontrolujte.</p>
+        <label class="field">Kód zastupitelstva <input id="kod" type="text" inputmode="numeric" value="554782"></label>
+        <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" multiple aria-label="Soubory XML">
+        <div class="msg" id="xmlMsg"></div>
+      </div>
+    </details>
+
+    <h2>Záloha a více telefonů</h2>
+    <p class="hint">Data jsou uložena jen v tomto prohlížeči. Zálohu zkopírujte, pošlete a na jiném telefonu vložte. „Přičíst lístky“ sloučí lístky z jiného telefonu (stejný lístek se nezapočte dvakrát).</p>
+    <div class="row">
+      <button class="btn" id="copyBackup">Kopírovat zálohu</button>
+    </div>
+    <textarea id="backupText" spellcheck="false" placeholder="Sem vložte zálohu (JSON)…" aria-label="Záloha"></textarea>
+    <div class="row">
+      <button class="btn" id="mergeBackup">Přičíst lístky ze zálohy</button>
+      <button class="btn" id="restoreBackup">Nahradit vše zálohou</button>
+    </div>
+    <div class="msg" id="backupMsg"></div>
+
+    <h2>Smazat</h2>
+    <div class="row"><button class="btn danger" id="wipe">Smazat všechny zadané lístky</button></div>
+
+    <h2>Pravidla, podle kterých se počítá</h2>
+    <ul class="rules">
+      <li>Křížek u <b>jedné strany</b>: hlas dostanou kandidáti této strany podle pořadí na lístku, nejvýše tolik, kolik se volí členů (65). Má-li strana méně kandidátů, dostane hlas každý z nich.</li>
+      <li>Křížky u <b>jednotlivých kandidátů</b> z libovolných stran: hlas dostane každý označený, nejvýše 65.</li>
+      <li><b>Strana + kandidáti jiných stran</b>: hlas dostanou označení kandidáti a z označené strany tolik prvních kandidátů, kolik zbývá do 65.</li>
+      <li>Křížky u kandidátů téže strany, která je zároveň označena, se nepočítají – platí křížek u strany.</li>
+      <li>Lístek je <b>neplatný</b>: není označen nic, je označeno více stran, nebo více kandidátů, než je volených členů. Neplatný je i lístek neúřední, mimo úřední obálku, přetržený, nebo je-li v obálce více lístků do téhož zastupitelstva – ty zadejte tlačítkem Neplatný.</li>
+    </ul>
+    <p class="hint">Podle zákona č. 491/2001 Sb., o volbách do zastupitelstev obcí. Aplikace je pomůcka, závazný je zápis okrskové volební komise.</p>
+  </section>
+</main>
+
+<div class="actionbar" id="actionbar">
+  <div class="wrap">
+    <div class="status" id="status"></div>
+    <div class="sheet-reasons" id="reasons" hidden>
+      <button class="btn small danger" data-reason="Neúřední tiskopis / mimo úřední obálku">Neúřední / bez obálky</button>
+      <button class="btn small danger" data-reason="Více lístků v obálce">Více lístků v obálce</button>
+      <button class="btn small danger" data-reason="Přetržený lístek">Přetržený</button>
+      <button class="btn small danger" data-reason="Jiný důvod">Jiný důvod</button>
+      <button class="btn small" data-reason="">Zrušit</button>
+    </div>
+    <div class="actions">
+      <button class="btn" id="clearSel">Vymazat</button>
+      <button class="btn danger" id="invalidBtn">Neplatný…</button>
+      <button class="btn primary" id="saveBtn">Uložit lístek</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- storage ---------- */
+const LS_CFG = 'volby-praha-cfg-v1', LS_BAL = 'volby-praha-ballots-v1', LS_DRAFT = 'volby-praha-draft-v1';
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+const SAMPLE = `# 1 LEPŠÍ ŽIVOT PRO LIDI – zrušení daně z nemovitostí, min. mzda 50.000 Kč, min. důchod 30.000 Kč, návrat cen energií na ceny z roku 2019, v obchodech zboží nejvyšší kvality za ceny dostupné pro každého, STOP válce
+1. Pavel Opl, 55 let, odborník na bezpečnost, emeritní policejní rada Policejního prezídia ČR, Praha 9, bez politické příslušnosti
+2. Pavel May, 63 let, elektrikář, Praha 7, LZPL
+3. Ing. Alexandr Gegalčij, 77 let, strojní inženýr, Praha 18, bez politické příslušnosti
+4. Kristina Livoreka, 51 let, pracovnice diagnostického ústavu, Praha 7, bez politické příslušnosti
+5. Miloš Sádecký, 62 let, obchodní manažer, Praha 10, ND
+6. Jan Panocha, 44 let, rentiér, Praha 11, ND
+7. Stanislav Filip, 49 let, pracovník soukromé bezpečnostní služby, Praha 8, bez politické příslušnosti
+8. Šárka Heverlová, 42 let, maminka na mateřské dovolené, Praha 9, bez politické příslušnosti
+9. Dušan Rudecký, 54 let, invalidní důchodce, bývalý voják z povolání, Praha 2, bez politické příslušnosti
+10. Vojtěch Kudrna, 20 let, student, Praha 2, bez politické příslušnosti
+# 2 ANO LEPŠÍ ČESKO S MIMOZEMŠŤANY
+1. Jiří Dubský, 56 let, elektrotechnik, Praha 5, mimozemstani.eu, navržen mimozemstani.eu
+2. Jaroslav Čipka, 53 let, IT technik, Praha 12, mimozemstani.eu, navržen mimozemstani.eu
+3. Jiří Koloušek, 81 let, podnikatel, emeritní letecký instruktor, Praha 4, bez politické příslušnosti, nezávislý kandidát`;
+
+/* ---------- candidate list parsing ---------- */
+function parseList(text) {
+  const parties = [], errors = [];
+  let cur = null, lastCand = null;
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.replace(/\t+/g, ', ').replace(/\s+/g, ' ').trim();
+    if (!line) return;
+    if (line.startsWith('#')) {
+      const h = line.replace(/^#+\s*/, '');
+      const m = h.match(/^(\d+)\s*[.):]?\s+(.+)$/);
+      cur = { n: m ? +m[1] : parties.length + 1, name: (m ? m[2] : h).trim(), cands: [] };
+      parties.push(cur); lastCand = null; return;
+    }
+    const m = line.match(/^(\d+)\s*[.),:]?\s*(\D.*)$/);
+    if (m) {
+      if (!cur) { errors.push(`Řádek ${i + 1}: kandidát před první stranou (chybí řádek s #).`); return; }
+      const rest = m[2].replace(/^[,\s]+/, '');
+      const ci = rest.indexOf(',');
+      lastCand = { n: +m[1], name: (ci < 0 ? rest : rest.slice(0, ci)).trim(), info: ci < 0 ? '' : rest.slice(ci + 1).trim() };
+      cur.cands.push(lastCand); return;
+    }
+    if (lastCand) lastCand.info = (lastCand.info ? lastCand.info + ', ' : '') + line;
+    else if (cur) cur.name += ' ' + line;
+    else errors.push(`Řádek ${i + 1}: nerozpoznaný text „${line.slice(0, 40)}“.`);
+  });
+  const seen = new Set();
+  parties.forEach(p => {
+    if (seen.has(p.n)) errors.push(`Strana č. ${p.n} je v seznamu dvakrát.`);
+    seen.add(p.n);
+    p.cands.sort((a, b) => a.n - b.n);
+    const cs = new Set();
+    p.cands.forEach(c => { if (cs.has(c.n)) errors.push(`Strana ${p.n}: kandidát č. ${c.n} je dvakrát.`); cs.add(c.n); });
+  });
+  parties.sort((a, b) => a.n - b.n);
+  return { parties, errors };
+}
+function listToText(parties) {
+  return parties.map(p => `# ${p.n} ${p.name}\n` + p.cands.map(c => `${c.n}. ${c.name}${c.info ? ', ' + c.info : ''}`).join('\n')).join('\n');
+}
+
+/* ---------- state ---------- */
+let cfg = load(LS_CFG, null);
+if (!cfg || !Array.isArray(cfg.parties)) cfg = { seats: 65, parties: parseList(SAMPLE).parties, sample: true };
+let ballots = load(LS_BAL, []);
+const draft = load(LS_DRAFT, {});
+let sel = { parties: new Set(draft.parties || []), cands: new Set(draft.cands || []) };
+let expanded = new Set(draft.expanded || []);
+let pIndex = new Map();
+function reindex() { pIndex = new Map(cfg.parties.map(p => [p.n, p])); }
+reindex();
+const persistCfg = () => save(LS_CFG, cfg);
+const persistBallots = () => save(LS_BAL, ballots);
+const persistDraft = () => save(LS_DRAFT, { parties: [...sel.parties], cands: [...sel.cands], expanded: [...expanded] });
+
+const pOf = k => +k.split(':')[0];
+const cOf = k => +k.split(':')[1];
+const shortName = p => p.name.split(/\s[–-]\s/)[0];
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const pl = (n, a, b, c) => `${n} ${n === 1 ? a : (n >= 2 && n <= 4 ? b : c)}`;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/* ---------- the counting rules ---------- */
+const REASONS = { empty: 'Nic není označeno', multi: 'Označeno více stran', many: 'Označeno více kandidátů, než je volených členů' };
+function evaluate(b) {
+  const seats = cfg.seats;
+  const P = [...b.parties], C = [...b.cands];
+  if (!P.length && !C.length) return { valid: false, code: 'empty', reason: REASONS.empty };
+  if (P.length > 1) return { valid: false, code: 'multi', reason: `Označeny ${P.length} strany – smí být nejvýše jedna` };
+  if (P.length === 1) {
+    const p = P[0];
+    const others = C.filter(k => pOf(k) !== p);
+    const ignored = C.filter(k => pOf(k) === p);
+    if (others.length > seats) return { valid: false, code: 'many', reason: `${others.length} kandidátů jiných stran – víc než ${seats}` };
+    const party = pIndex.get(p);
+    const rest = seats - others.length;
+    const fromParty = party ? party.cands.slice(0, Math.max(0, rest)).map(c => `${p}:${c.n}`) : [];
+    return {
+      valid: true, mode: others.length ? 'mix' : 'party',
+      votes: others.concat(fromParty), fromParty: new Set(fromParty), ignored: new Set(ignored), party: p, others: others.length
+    };
+  }
+  if (C.length > seats) return { valid: false, code: 'many', reason: `Označeno ${C.length} kandidátů – víc než ${seats}` };
+  return { valid: true, mode: 'cands', votes: C, fromParty: new Set(), ignored: new Set() };
+}
+
+function tally() {
+  const cv = new Map(); let total = 0, valid = 0, invalid = 0, votes = 0;
+  const reasons = new Map();
+  for (const b of ballots) {
+    const k = b.count || 1; total += k;
+    if (b.invalid) { invalid += k; reasons.set(b.reason || 'Jiný důvod', (reasons.get(b.reason || 'Jiný důvod') || 0) + k); continue; }
+    const r = evaluate(b);
+    if (!r.valid) { invalid += k; const lbl = REASONS[r.code]; reasons.set(lbl, (reasons.get(lbl) || 0) + k); continue; }
+    valid += k;
+    for (const v of r.votes) { cv.set(v, (cv.get(v) || 0) + k); votes += k; }
+  }
+  return { cv, total, valid, invalid, votes, reasons };
+}
+const ballotCount = () => ballots.reduce((s, b) => s + (b.count || 1), 0);
+
+/* ---------- describe a ballot ---------- */
+function describe(b, r) {
+  if (b.invalid) return `Neplatný – ${b.reason}`;
+  r = r || evaluate(b);
+  if (!r.valid) return `Neplatný – ${r.reason}`;
+  const pn = n => { const p = pIndex.get(n); return p ? `${n} ${shortName(p)}` : `${n} (neznámá)`; };
+  if (r.mode === 'party') return `Strana ${pn(r.party)} → ${pl(r.votes.length, 'hlas', 'hlasy', 'hlasů')}`;
+  if (r.mode === 'mix') return `Strana ${pn(r.party)} + ${r.others} kand. jiných stran → ${pl(r.votes.length, 'hlas', 'hlasy', 'hlasů')}`;
+  return `Jednotlivě ${pl(r.votes.length, 'kandidát', 'kandidáti', 'kandidátů')} → ${pl(r.votes.length, 'hlas', 'hlasy', 'hlasů')}`;
+}
+
+/* ---------- rendering: ballot ---------- */
+const $ = id => document.getElementById(id);
+function renderBallot() {
+  const r = evaluate(sel);
+  const voteSet = r.valid ? new Set(r.votes) : new Set();
+  const html = cfg.parties.map(p => {
+    const marked = sel.parties.has(p.n);
+    const nSel = p.cands.filter(c => sel.cands.has(`${p.n}:${c.n}`)).length;
+    const nVotes = p.cands.filter(c => voteSet.has(`${p.n}:${c.n}`)).length;
+    const open = expanded.has(p.n);
+    let body = '';
+    if (open) {
+      body = '<ol class="cands">' + p.cands.map(c => {
+        const k = `${p.n}:${c.n}`, on = sel.cands.has(k);
+        const gets = voteSet.has(k), ign = r.valid && r.ignored.has(k);
+        const badge = gets ? `<span class="vote yes" title="${r.fromParty.has(k) ? 'hlas díky křížku u strany' : 'hlas za křížek u kandidáta'}">+1</span>` : (ign ? '<span class="vote no">nepočítá se</span>' : '<span></span>');
+        return `<li><button class="crow${on ? ' on' : ''}${ign ? ' ignored' : ''}" data-act="cand" data-k="${k}" aria-pressed="${on}">` +
+          `<span class="box sm${on ? ' on' : ''}"></span><span class="cn">${c.n}.</span>` +
+          `<span class="ctext"><span class="cname">${esc(c.name)}</span>${c.info ? `<span class="cinfo">${esc(c.info)}</span>` : ''}</span>${badge}</button></li>`;
+      }).join('') + '</ol>' +
+        `<div class="toolbar"><button class="btn small" data-act="selRange" data-p="${p.n}">Označit kandidáty od–do…</button>` +
+        (nSel ? `<button class="btn small" data-act="clearParty" data-p="${p.n}">Odznačit kandidáty strany</button>` : '') + '</div>';
+    }
+    return `<section class="party${marked ? ' marked' : ''}" data-p="${p.n}"><div class="phead${marked ? ' on' : ''}">` +
+      `<button class="box" data-act="party" data-p="${p.n}" aria-pressed="${marked}" aria-label="Křížek u strany ${p.n}"></button>` +
+      `<button class="pname" data-act="expand" data-p="${p.n}" aria-expanded="${open}"><b>${p.n}. ${esc(shortName(p))}</b>` +
+      `<span class="meta"><span>${p.cands.length} kandidátů</span>${nSel ? `<span class="mark">${nSel} označeno</span>` : ''}` +
+      `${nVotes ? `<span>hlasů: <span class="num">${nVotes}</span></span>` : ''}<span>${open ? '▲ skrýt' : '▼ kandidáti'}</span></span></button>` +
+      `</div>${body}</section>`;
+  }).join('');
+  $('ballot').innerHTML = html || '<div class="empty">Zatím žádné strany. Doplňte kandidátní listiny na kartě Kandidáti.</div>';
+  renderStatus(r);
+}
+
+function renderStatus(r) {
+  r = r || evaluate(sel);
+  const nb = ballotCount() + 1;
+  const empty = !sel.parties.size && !sel.cands.size;
+  let pill, txt, note = '';
+  if (empty) { pill = '<span class="pill idle">Prázdný</span>'; txt = `Lístek č. ${nb} – označte stranu nebo kandidáty`; }
+  else if (!r.valid) { pill = '<span class="pill bad">Neplatný</span>'; txt = esc(r.reason); }
+  else {
+    pill = '<span class="pill ok">Platný</span>';
+    txt = `Lístek č. ${nb}: ${esc(describe(sel, r))}`;
+    if (r.ignored.size) note = `${r.ignored.size}× křížek u kandidáta označené strany se nepočítá.`;
+    const unknown = r.votes.length === 0 && r.mode === 'party' ? 'Označená strana nemá v seznamu žádné kandidáty.' : '';
+    if (unknown) note = unknown;
+  }
+  $('status').innerHTML = `${pill}<span class="txt">${txt}</span>${note ? `<span class="note">${note}</span>` : ''}`;
+  $('saveBtn').disabled = empty;
+  $('saveBtn').textContent = (!empty && !r.valid) ? 'Uložit jako neplatný' : 'Uložit lístek';
+  $('saveBtn').classList.toggle('danger', !empty && !r.valid);
+  $('saveBtn').classList.toggle('primary', empty || r.valid);
+  $('hdrInfo').textContent = `${pl(ballotCount(), 'lístek', 'lístky', 'lístků')} · volí se ${cfg.seats}`;
+}
+
+function renderBatchSelect() {
+  $('batchParty').innerHTML = cfg.parties.map(p => `<option value="${p.n}">${p.n}. ${esc(shortName(p))}</option>`).join('');
+}
+
+/* ---------- interactions: ballot ---------- */
+function changed() { persistDraft(); renderBallot(); }
+$('ballot').addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const act = t.dataset.act, p = +t.dataset.p;
+  if (act === 'party') { sel.parties.has(p) ? sel.parties.delete(p) : sel.parties.add(p); }
+  else if (act === 'expand') { expanded.has(p) ? expanded.delete(p) : expanded.add(p); }
+  else if (act === 'cand') { const k = t.dataset.k; sel.cands.has(k) ? sel.cands.delete(k) : sel.cands.add(k); }
+  else if (act === 'clearParty') { [...sel.cands].filter(k => pOf(k) === p).forEach(k => sel.cands.delete(k)); }
+  else if (act === 'selRange') { $('code').value = `${p}.1-`; $('code').focus(); return; }
+  changed();
+});
+
+function applyCode(raw) {
+  const toks = raw.split(/[\s,;]+/).filter(Boolean);
+  const msgs = [];
+  for (const tok of toks) {
+    let m;
+    if ((m = tok.match(/^(\d+)$/))) {
+      const p = +m[1];
+      if (!pIndex.has(p)) { msgs.push(`Strana ${p} neexistuje`); continue; }
+      sel.parties.has(p) ? sel.parties.delete(p) : sel.parties.add(p);
+    } else if ((m = tok.match(/^(\d+)[./:](\d+)(?:-(\d+))?$/))) {
+      const p = +m[1], a = +m[2], z = m[3] ? +m[3] : null, party = pIndex.get(p);
+      if (!party) { msgs.push(`Strana ${p} neexistuje`); continue; }
+      if (z === null) {
+        if (!party.cands.some(c => c.n === a)) { msgs.push(`Strana ${p} nemá kandidáta ${a}`); continue; }
+        const k = `${p}:${a}`; sel.cands.has(k) ? sel.cands.delete(k) : sel.cands.add(k);
+      } else {
+        party.cands.filter(c => c.n >= Math.min(a, z) && c.n <= Math.max(a, z)).forEach(c => sel.cands.add(`${p}:${c.n}`));
+      }
+      expanded.add(p);
+    } else return false;
+  }
+  if (msgs.length) toast(msgs.join(' · '));
+  changed();
+  return true;
+}
+function runSearch() {
+  const q = fold($('code').value.trim());
+  const box = $('searchRes');
+  if (q.length < 2 || /^[\d\s.,;:/-]+$/.test(q)) { box.innerHTML = ''; return; }
+  const hits = [];
+  for (const p of cfg.parties) for (const c of p.cands) {
+    if (fold(c.name).includes(q)) hits.push([p, c]);
+    if (hits.length >= 25) break;
+  }
+  box.innerHTML = hits.length ? hits.map(([p, c]) => {
+    const k = `${p.n}:${c.n}`, on = sel.cands.has(k);
+    return `<button class="crow${on ? ' on' : ''}" data-act="cand" data-k="${k}"><span class="box sm${on ? ' on' : ''}"></span>` +
+      `<span class="cn">${p.n}.${c.n}</span><span class="ctext"><span class="cname">${esc(c.name)}</span><span class="cinfo">${esc(shortName(p))}</span></span><span></span></button>`;
+  }).join('') : '<div class="empty">Nikdo neodpovídá.</div>';
+}
+$('searchRes').addEventListener('click', e => {
+  const t = e.target.closest('[data-act="cand"]'); if (!t) return;
+  const k = t.dataset.k; sel.cands.has(k) ? sel.cands.delete(k) : sel.cands.add(k);
+  expanded.add(pOf(k)); changed(); runSearch();
+});
+function codeGo() {
+  const v = $('code').value.trim(); if (!v) return;
+  if (applyCode(v)) { $('code').value = ''; runSearch(); }
+  else runSearch();
+}
+$('code').addEventListener('input', runSearch);
+$('code').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); codeGo(); } });
+$('codeGo').addEventListener('click', codeGo);
+
+function resetSel() { sel = { parties: new Set(), cands: new Set() }; expanded.clear(); $('code').value = ''; $('searchRes').innerHTML = ''; persistDraft(); }
+$('clearSel').addEventListener('click', () => { resetSel(); renderBallot(); });
+
+function addBallot(b, msg) {
+  b.id = uid(); b.t = Date.now();
+  ballots.push(b); persistBallots();
+  toast(msg, () => { ballots = ballots.filter(x => x.id !== b.id); persistBallots(); renderAll(); });
+  renderAll();
+}
+$('saveBtn').addEventListener('click', () => {
+  if (!sel.parties.size && !sel.cands.size) return;
+  const b = { parties: [...sel.parties], cands: [...sel.cands], count: 1 };
+  const r = evaluate(b), n = ballotCount() + 1;
+  resetSel();
+  addBallot(b, `Lístek č. ${n} uložen – ${r.valid ? `platný, ${pl(r.votes.length, 'hlas', 'hlasy', 'hlasů')}` : 'neplatný'}`);
+  window.scrollTo({ top: 0 });
+});
+$('invalidBtn').addEventListener('click', () => { $('reasons').hidden = !$('reasons').hidden; });
+$('reasons').addEventListener('click', e => {
+  const t = e.target.closest('[data-reason]'); if (!t) return;
+  $('reasons').hidden = true;
+  if (!t.dataset.reason) return;
+  const n = ballotCount() + 1;
+  resetSel();
+  addBallot({ invalid: true, reason: t.dataset.reason, parties: [], cands: [], count: 1 }, `Lístek č. ${n} uložen jako neplatný`);
+});
+$('batchAdd').addEventListener('click', () => {
+  const p = +$('batchParty').value, k = Math.floor(+$('batchCount').value);
+  if (!pIndex.has(p) || !(k > 0)) { toast('Zadejte stranu a počet lístků (aspoň 1).'); return; }
+  addBallot({ parties: [p], cands: [], count: k }, `Přidáno ${k} lístků pro stranu ${p}`);
+  $('batchCount').value = 1;
+});
+$('batchInvAdd').addEventListener('click', () => {
+  const k = Math.floor(+$('batchInvCount').value);
+  if (!(k > 0)) { toast('Zadejte počet lístků (aspoň 1).'); return; }
+  addBallot({ invalid: true, reason: 'Neplatný (hromadně)', parties: [], cands: [], count: k }, `Přidáno ${k} neplatných lístků`);
+  $('batchInvCount').value = 1;
+});
+
+/* ---------- history ---------- */
+let armedDelete = null;
+function renderHistory() {
+  if (!ballots.length) { $('hist').innerHTML = '<div class="empty">Zatím nebyl uložen žádný lístek.</div>'; return; }
+  let n = 0;
+  const rows = ballots.map(b => { const from = n + 1; n += b.count || 1; return { b, from, to: n }; }).reverse();
+  $('hist').innerHTML = rows.map(({ b, from, to }) => {
+    const time = new Date(b.t).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+    const r = b.invalid ? null : evaluate(b);
+    const bad = b.invalid || !r.valid;
+    const label = (b.count || 1) > 1 ? `č. ${from}–${to} (${b.count} lístků)` : `č. ${from}`;
+    return `<div class="hitem"><span class="pill ${bad ? 'bad' : 'ok'}">${bad ? 'Neplatný' : 'Platný'}</span>` +
+      `<div class="hmain"><div>${esc(describe(b, r))}</div><div class="t">${label} · ${time}</div></div>` +
+      `<div class="btns">${(b.count || 1) === 1 && !b.invalid ? `<button class="btn small" data-act="edit" data-id="${b.id}">Opravit</button>` : ''}` +
+      `<button class="btn small danger" data-act="del" data-id="${b.id}">${armedDelete === b.id ? 'Opravdu smazat?' : 'Smazat'}</button></div></div>`;
+  }).join('');
+}
+$('hist').addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const id = t.dataset.id, b = ballots.find(x => x.id === id); if (!b) return;
+  if (t.dataset.act === 'del') {
+    if (armedDelete !== id) { armedDelete = id; renderHistory(); return; }
+    armedDelete = null; ballots = ballots.filter(x => x.id !== id); persistBallots(); renderAll(); toast('Lístek smazán');
+  } else if (t.dataset.act === 'edit') {
+    ballots = ballots.filter(x => x.id !== id); persistBallots();
+    sel = { parties: new Set(b.parties), cands: new Set(b.cands) };
+    expanded = new Set([...b.parties, ...b.cands.map(pOf)]);
+    persistDraft(); showTab('ballot'); renderAll();
+    toast('Lístek vrácen k opravě – po úpravě ho znovu uložte.');
+  }
+});
+
+/* ---------- results ---------- */
+let openRes = new Set();
+function renderResults() {
+  const T = tally();
+  $('tiles').innerHTML = [
+    ['Lístků celkem', T.total], ['Platných', T.valid], ['Neplatných', T.invalid, 'bad'], ['Platných hlasů', T.votes]
+  ].map(([k, v, c]) => `<div class="tile ${c || ''}"><div class="k">${k}</div><div class="v">${v.toLocaleString('cs-CZ')}</div></div>`).join('');
+  const rows = cfg.parties.map(p => ({ p, v: p.cands.reduce((s, c) => s + (T.cv.get(`${p.n}:${c.n}`) || 0), 0) }));
+  const max = Math.max(1, ...rows.map(r => r.v));
+  let html = '<thead><tr><th class="r">Č.</th><th>Strana</th><th class="r">Hlasy</th><th class="r">%</th></tr></thead><tbody>';
+  for (const { p, v } of rows) {
+    const pct = T.votes ? (100 * v / T.votes).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '–';
+    html += `<tr class="prow" data-p="${p.n}"><td class="r">${p.n}</td><td>${esc(shortName(p))} <span class="hint">${openRes.has(p.n) ? '▲' : '▼'}</span>` +
+      `<div class="bar" style="width:${(100 * v / max).toFixed(1)}%"></div></td><td class="r">${v.toLocaleString('cs-CZ')}</td><td class="r">${pct}</td></tr>`;
+    if (openRes.has(p.n)) for (const c of p.cands) {
+      html += `<tr class="crow-r"><td class="r">${p.n}.${c.n}</td><td>${esc(c.name)}</td><td class="r">${(T.cv.get(`${p.n}:${c.n}`) || 0).toLocaleString('cs-CZ')}</td><td></td></tr>`;
+    }
+  }
+  $('resTable').innerHTML = html + '</tbody>';
+  $('invReasons').innerHTML = T.reasons.size ? '<h2>Neplatné lístky podle důvodu</h2><div class="table-wrap"><table><tbody>' +
+    [...T.reasons].map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${v}</td></tr>`).join('') + '</tbody></table></div>' : '';
+}
+$('resTable').addEventListener('click', e => {
+  const t = e.target.closest('tr.prow'); if (!t) return;
+  const p = +t.dataset.p; openRes.has(p) ? openRes.delete(p) : openRes.add(p); renderResults();
+});
+function csv() {
+  const T = tally(), q = s => `"${String(s).replace(/"/g, '""')}"`;
+  const out = ['typ;strana;kandidat;nazev;hlasy',
+    `souhrn;;;lístků celkem;${T.total}`, `souhrn;;;platných lístků;${T.valid}`, `souhrn;;;neplatných lístků;${T.invalid}`, `souhrn;;;platných hlasů;${T.votes}`];
+  for (const p of cfg.parties) {
+    const v = p.cands.reduce((s, c) => s + (T.cv.get(`${p.n}:${c.n}`) || 0), 0);
+    out.push(`strana;${p.n};;${q(shortName(p))};${v}`);
+    for (const c of p.cands) out.push(`kandidat;${p.n};${c.n};${q(c.name)};${T.cv.get(`${p.n}:${c.n}`) || 0}`);
+  }
+  return out.join('\n');
+}
+function copyText(text, area, okMsg) {
+  const fallback = () => { if (area) { area.hidden = false; area.value = text; area.select(); } toast('Text je označený – zkopírujte ho ručně.'); };
+  try { navigator.clipboard.writeText(text).then(() => toast(okMsg), fallback); } catch { fallback(); }
+}
+$('copyCsv').addEventListener('click', () => copyText(csv(), $('csvOut'), 'Výsledky zkopírovány'));
+$('dlCsv')?.addEventListener('click', () => {
+  const text = csv();
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+    a.download = `vysledky-praha-${new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-')}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch {}
+  $('csvOut').hidden = false; $('csvOut').value = text;
+});
+
+/* ---------- settings ---------- */
+function renderSettings() {
+  $('seats').value = cfg.seats;
+  if (document.activeElement !== $('listText')) $('listText').value = listToText(cfg.parties);
+}
+$('seats').addEventListener('change', () => {
+  const v = Math.floor(+$('seats').value);
+  if (v > 0) { cfg.seats = v; persistCfg(); renderAll(); toast(`Volí se ${v} členů`); } else $('seats').value = cfg.seats;
+});
+function setMsg(id, ok, text) { const el = $(id); el.className = 'msg ' + (ok ? 'ok' : 'bad'); el.textContent = text; }
+function applyParties(parties, msgId, extra) {
+  cfg.parties = parties; cfg.sample = false; reindex(); persistCfg();
+  // drop selections pointing to parties/candidates that no longer exist
+  sel.parties = new Set([...sel.parties].filter(p => pIndex.has(p)));
+  sel.cands = new Set([...sel.cands].filter(k => pIndex.get(pOf(k))?.cands.some(c => c.n === cOf(k))));
+  persistDraft();
+  const nc = parties.reduce((s, p) => s + p.cands.length, 0);
+  setMsg(msgId, true, `Načteno ${parties.length} stran a ${nc} kandidátů.${ballots.length ? ' Výsledky se přepočítaly podle nového seznamu.' : ''}${extra || ''}`);
+  renderAll();
+}
+$('applyList').addEventListener('click', () => {
+  const { parties, errors } = parseList($('listText').value);
+  if (errors.length) { setMsg('listMsg', false, errors.slice(0, 6).join(' ')); return; }
+  if (!parties.length) { setMsg('listMsg', false, 'Seznam je prázdný. Každá strana musí začínat řádkem s #.'); return; }
+  applyParties(parties, 'listMsg');
+});
+$('resetSample').addEventListener('click', () => { $('listText').value = SAMPLE; setMsg('listMsg', true, 'Ukázka vložena – potvrďte tlačítkem Použít seznam.'); });
+
+$('xmlFile').addEventListener('change', async e => {
+  const files = [...e.target.files]; if (!files.length) return;
+  const kod = $('kod').value.trim();
+  const candRows = [], partyRows = [];
+  try {
+    for (const f of files) {
+      let text = await f.text();
+      const doc = new DOMParser().parseFromString(text, 'application/xml');
+      if (doc.getElementsByTagName('parsererror').length) throw new Error(`${f.name}: soubor není platné XML.`);
+      for (const el of doc.getElementsByTagName('*')) {
+        if (!el.children.length || [...el.children].some(c => c.children.length)) continue;
+        const o = {}; for (const c of el.children) o[c.localName.toUpperCase()] = c.textContent.trim();
+        if (kod && o.KODZASTUP && o.KODZASTUP !== kod) continue;
+        if (o.PORCISLO && (o.PRIJMENI || o.JMENO)) candRows.push(o);
+        else if (o.NAZEVCELK || o.NAZEV_STRV) partyRows.push(o);
+      }
+    }
+    if (!candRows.length) throw new Error('V souborech nejsou kandidáti pro zadaný kód zastupitelstva (hledám pole KODZASTUP, PORCISLO, PRIJMENI).');
+    const pkey = o => +(o.POR_STR_HL || o.OSTRANA || o.VSTRANA);
+    const names = new Map(partyRows.map(o => [pkey(o), o.NAZEVCELK || o.NAZEV_STRV]));
+    const map = new Map();
+    for (const o of candRows) {
+      const pn = pkey(o);
+      if (!map.has(pn)) map.set(pn, { n: pn, name: names.get(pn) || `Strana ${pn}`, cands: [] });
+      const name = [o.TITULPRED, o.JMENO, o.PRIJMENI, o.TITULZA].filter(Boolean).join(' ');
+      const info = [o.VEK && `${o.VEK} let`, o.POVOLANI, o.BYDLISTEN].filter(Boolean).join(', ');
+      map.get(pn).cands.push({ n: +o.PORCISLO, name, info });
+    }
+    const parties = [...map.values()].sort((a, b) => a.n - b.n);
+    parties.forEach(p => p.cands.sort((a, b) => a.n - b.n));
+    $('listText').value = listToText(parties);
+    setMsg('xmlMsg', true, `Nalezeno ${parties.length} stran a ${candRows.length} kandidátů. Zkontrolujte text výše a potvrďte tlačítkem Použít seznam.`);
+  } catch (err) { setMsg('xmlMsg', false, err.message); }
+  e.target.value = '';
+});
+
+$('copyBackup').addEventListener('click', () => {
+  const text = JSON.stringify({ app: 'scitani-praha', v: 1, exported: new Date().toISOString(), cfg, ballots });
+  copyText(text, $('backupText'), 'Záloha zkopírována');
+});
+function readBackup() {
+  try {
+    const d = JSON.parse($('backupText').value);
+    if (!d || !Array.isArray(d.ballots)) throw 0;
+    return d;
+  } catch { setMsg('backupMsg', false, 'Vložený text není záloha z této aplikace.'); return null; }
+}
+$('mergeBackup').addEventListener('click', () => {
+  const d = readBackup(); if (!d) return;
+  const have = new Set(ballots.map(b => b.id));
+  const add = d.ballots.filter(b => b && b.id && !have.has(b.id));
+  ballots = ballots.concat(add).sort((a, b) => a.t - b.t); persistBallots();
+  const n = add.reduce((s, b) => s + (b.count || 1), 0);
+  setMsg('backupMsg', true, `Přičteno ${n} lístků (${d.ballots.length - add.length} záznamů už tu bylo).`);
+  renderAll();
+});
+let armedRestore = false;
+$('restoreBackup').addEventListener('click', () => {
+  const d = readBackup(); if (!d) return;
+  if (!armedRestore) { armedRestore = true; $('restoreBackup').textContent = 'Opravdu nahradit vše?'; return; }
+  armedRestore = false; $('restoreBackup').textContent = 'Nahradit vše zálohou';
+  if (d.cfg && Array.isArray(d.cfg.parties)) { cfg = d.cfg; reindex(); persistCfg(); }
+  ballots = d.ballots; persistBallots();
+  setMsg('backupMsg', true, `Obnoveno: ${ballotCount()} lístků, ${cfg.parties.length} stran.`);
+  renderAll();
+});
+let armedWipe = false;
+$('wipe').addEventListener('click', () => {
+  if (!armedWipe) { armedWipe = true; $('wipe').textContent = 'Opravdu smazat všechny lístky?'; return; }
+  armedWipe = false; $('wipe').textContent = 'Smazat všechny zadané lístky';
+  ballots = []; persistBallots(); renderAll(); toast('Všechny lístky smazány');
+});
+
+/* ---------- tabs, toast ---------- */
+let tab = 'ballot';
+function showTab(name) {
+  tab = name;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['ballot', 'history', 'results', 'settings'].forEach(v => { $('v-' + v).hidden = v !== name; });
+  $('actionbar').hidden = name !== 'ballot';
+  $('main').classList.toggle('with-bar', name === 'ballot');
+  armedDelete = null;
+  renderAll();
+  window.scrollTo({ top: 0 });
+}
+document.querySelector('nav.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+
+let toastTimer;
+function toast(text, undo) {
+  const el = $('toast');
+  el.innerHTML = `<span>${esc(text)}</span>` + (undo ? '<button type="button">Zpět</button>' : '');
+  el.hidden = false;
+  el.style.bottom = tab === 'ballot' ? '' : 'calc(20px + env(safe-area-inset-bottom, 0px))';
+  if (undo) el.querySelector('button').onclick = () => { undo(); el.hidden = true; };
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, undo ? 6000 : 3500);
+}
+
+function renderAll() {
+  renderBallot(); renderBatchSelect();
+  if (tab === 'history') renderHistory();
+  if (tab === 'results') renderResults();
+  if (tab === 'settings') renderSettings();
+}
+
+// keep the screen on while counting, where the browser allows it
+async function wake() { try { if (navigator.wakeLock && document.visibilityState === 'visible') await navigator.wakeLock.request('screen'); } catch {} }
+document.addEventListener('visibilitychange', wake);
+document.addEventListener('click', wake, { once: true });
+
+renderAll();
+if (cfg.sample) toast('Načtena ukázka ze dvou stran. Celé kandidátní listiny doplňte na kartě Kandidáti.');
+})();
+</script>
+</body><!--wrap-->
+</html><!--wrap-->
