@@ -2298,10 +2298,9 @@ function scanDetect(g, gi, w, h) {
       // (a single band as high as a box: a box filled by a heavy cross on a small photo)
       const solid = bd => bd.e - bd.s >= H0 * 0.6 && bd.e - bd.s <= H0 * 1.3;
       if (!top || (top === bot && !solid(top)) || top.s > s + len * 0.35 || bot.e < e - len * 0.35) continue;
-      // choose boxes between edge bands: as many non-overlapping boxes of a plausible height as
-      // possible (candidate box ≈ H0; party box ≈ 2·H0, penalised so that two candidate boxes win),
-      // then the closest heights. A band in the middle of a box (the flat centre of a cross) is
-      // skipped, touching boxes share a band; a band thickened by a stroke also offers its outer rows
+      // choose boxes between edge bands: as many separate boxes of a plausible height as possible
+      // (candidate box ≈ H0, party box ≈ 2·H0), then the closest heights. A band in the middle of a box (the flat centre of a cross) is skipped; a band
+      // thickened by a stroke also offers its outer rows
       // inner bands must be (almost) full rows – the flat centre of a cross in the party box is not
       const nodes = bands.flatMap((bd, bi) => bd === top || bd === bot || bd.mx >= 0.8 ? bd.pos.map(y => ({ bi, y })) : []); // in y order
       const F = nodes.map(() => null); // best chain of boxes whose last box ends at node j
@@ -2311,10 +2310,13 @@ function scanDetect(g, gi, w, h) {
           const bi = nodes[i].bi, same = bi === nodes[j].bi;
           if (same && (!solid(bands[bi]) || nodes[i].y !== bands[bi].pos[0] || nodes[j].y !== bands[bi].pos[2])) continue;
           const r = (nodes[j].y - nodes[i].y) / H0;
-          const cost = r >= 0.78 && r <= 1.3 ? Math.abs(r - 1) : r >= 1.5 && r <= 2.8 ? 0.5 + 0.3 * Math.abs(r / 2 - 1) : -1;
-          if (cost < 0) continue;
-          // previous box ends at or above this one's top edge (touching boxes share a band)
-          let prev = null; for (let k = 0; k <= i; k++) if (F[k] && (!prev || F[k].sc > prev.sc)) prev = F[k];
+          // party box: small bonus, so that a crossed party box is not taken for one candidate box
+          // made of its upper half (the centre of the cross looks like an edge)
+          const cost = r >= 0.78 && r <= 1.3 ? Math.abs(r - 1) : r >= 1.5 && r <= 2.8 ? 0.3 * Math.abs(r / 2 - 1) - 0.5 : NaN;
+          if (Number.isNaN(cost)) continue;
+          // previous box ends at an earlier band: on this ballot the boxes never touch, so a band is
+          // never both the bottom of one box and the top of the next
+          let prev = null; for (let k = 0; k < i && nodes[k].bi < bi; k++) if (F[k] && (!prev || F[k].sc > prev.sc)) prev = F[k];
           const sc = (prev ? prev.sc : 0) + 10 - cost;
           if (!F[j] || sc > F[j].sc) F[j] = { sc, bx: { yt: nodes[i].y, yb: nodes[j].y }, prev };
         }
