@@ -1176,6 +1176,7 @@ function scanDetect(g, gi, w, h) {
         const L = y => xl(y) + dl, Rr = y => xr(y) + dr, xc = (L(yt) + Rr(yt)) / 2;
         const edge = y0 => snap(d => { let n = 0, tot = 0; for (let x = Math.ceil(L(y0) + 2); x <= Rr(y0) - 2; x++, tot++) n += isDark(x, y0 + d + m * (x - xc)); return tot ? n / tot : 0; }, 2)[0];
         yt += edge(yt); yb += edge(yb);
+        if (yb - yt < H0 * 0.7) continue; // e.g. the gap between two boxes joined by cross strokes
         const pt = (yy, xx) => [xx, yy + m * (xx - xc)], ym = (yt + yb) / 2;
         boxes.push(mkBox([pt(yt, L(yt)), pt(yt, Rr(yt)), pt(yb, Rr(yb)), pt(yb, L(yb))], t, m,
           { sp: cl >= 0.8 && cr >= 0.8 ? [[ym, L(ym), 0], [ym, Rr(ym), 1]] : null }));
@@ -1185,16 +1186,20 @@ function scanDetect(g, gi, w, h) {
   };
   const found = [];
   for (const c of cols) {
-    const sd = typical(c), seedP = (sd.length ? sd : c.seeds).flatMap(seedPts), m = c.m;
-    const r0 = Math.max(2, Math.round(W0 * 0.1));
+    // no clean candidate box: use seeds of the usual width (e.g. the party box), not ones narrowed by a cross
+    const sw = c.seeds.filter(b => Math.abs(b.w - W0) <= W0 * 0.15);
+    const sd = typical(c), seedP = (sd.length ? sd : sw.length ? sw : c.seeds).flatMap(seedPts), m = c.m;
+    const r0 = Math.max(3, Math.round(W0 * 0.1));
     let M = c.M;
     if (!M) {
       // too few clean boxes for a slope (perspective differs per column): try slopes and keep
       // the one along which most rows have dark pixels at both box sides
       const sy0 = Math.min(...c.seeds.map(b => b.y0)), y0 = Math.max(0, Math.round(sy0 - H0 * 4)), y1 = Math.min(h - 1, Math.round(sy0 + H0 * 14));
       let best = -1;
-      for (let k = -20; k <= 20; k++) {
-        const Mk = linModel(seedP, k * 0.01);
+      // slope near the other columns' one when known (one page, similar perspective)
+      const a0 = slopes.length ? gSlope : 0, ka = slopes.length ? 12 : 40;
+      for (let k = -ka; k <= ka; k++) {
+        const Mk = linModel(seedP, a0 + k * 0.005);
         let n = 0;
         for (let y = y0; y <= y1; y++) { const a = Math.round(Mk.x(0, y)), b = Math.round(Mk.x(1, y)); n += anyDark(y, a - 1, a + 1) && anyDark(y, b - 1, b + 1); }
         if (n > best || (n === best && Math.abs(Mk.a - gSlope) < Math.abs(M.a - gSlope))) { best = n; M = Mk; }
