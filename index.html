@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#c4306c"><!--wrap-->
 <meta name="mobile-web-app-capable" content="yes"><!--wrap-->
 <meta name="apple-mobile-web-app-capable" content="yes"><!--wrap-->
+<link rel="manifest" href="manifest.webmanifest"><!--wrap-->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><!--wrap-->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><!--wrap-->
 <title>Sčítání hlasů Praha</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -539,6 +542,7 @@ $('ballot').addEventListener('click', e => {
 
 function applyCode(raw) {
   const toks = raw.split(/[\s,;]+/).filter(Boolean);
+  if (!toks.every(t => /^\d+(?:[./:]\d+(?:-\d+)?)?$/.test(t))) return false; // not all codes (e.g. a surname): change nothing
   const msgs = [];
   for (const tok of toks) {
     let m;
@@ -855,6 +859,13 @@ document.addEventListener('click', wake, { once: true });
 renderAll();
 if (cfg.sample) toast('Načtena ukázka ze dvou stran. Celé kandidátní listiny doplňte na kartě Kandidáti.');
 })();
+
+// offline support (service worker) – only on https/localhost; silently skipped elsewhere (file://, sandboxed iframe)
+try {
+  if ((location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+} catch {}
 </script>
 </body><!--wrap-->
 </html><!--wrap-->

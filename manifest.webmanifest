@@ -1,0 +1,18 @@
+{
+  "name": "Sčítání hlasů Praha",
+  "short_name": "Sčítání",
+  "description": "Pomůcka pro okrskové komise ke sčítání hlasů do Zastupitelstva hl. m. Prahy.",
+  "lang": "cs",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#c4306c",
+  "background_color": "#e9ebee",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
