@@ -251,6 +251,12 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
     <p class="hint">Hlasy strany = součet hlasů jejích kandidátů. Klepnutím na stranu zobrazíte kandidáty.</p>
     <div class="table-wrap"><table id="resTable"></table></div>
     <div id="invReasons"></div>
+    <h2>Kontrola se zápisem</h2>
+    <div class="row">
+      <label class="field">Vydané úřední obálky <input id="envIssued" type="number" min="0" step="1" inputmode="numeric"></label>
+      <label class="field">Odevzdané úřední obálky <input id="envReturned" type="number" min="0" step="1" inputmode="numeric"></label>
+    </div>
+    <div class="msg" id="envMsg"></div>
     <div class="row">
       <button class="btn" id="copyCsv">Kopírovat výsledky (CSV)</button>
       <button class="btn" id="dlCsv">Stáhnout CSV</button>
@@ -306,9 +312,11 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
       <li>Křížky u <b>jednotlivých kandidátů</b> z libovolných stran: hlas dostane každý označený, nejvýše 65.</li>
       <li><b>Strana + kandidáti jiných stran</b>: hlas dostanou označení kandidáti a z označené strany tolik prvních kandidátů, kolik zbývá do 65.</li>
       <li>Křížky u kandidátů téže strany, která je zároveň označena, se nepočítají – platí křížek u strany.</li>
+      <li>Kandidát, který se <b>vzdal kandidatury</b> nebo byl odvolán (v seznamu „[VZDAL SE]“), hlas nedostane. Hlas ze strany přejde na dalšího kandidáta v pořadí. Křížek u něj se ale počítá do limitu 65.</li>
+      <li>Poškozený nebo přeložený lístek je platný, pokud jsou údaje čitelné. Jiné úpravy než křížky (fajfky, kroužky, škrtání, dopsaná jména) se neberou v úvahu.</li>
       <li>Lístek je <b>neplatný</b>: není označen nic, je označeno více stran, nebo více kandidátů, než je volených členů. Neplatný je i lístek neúřední, mimo úřední obálku, přetržený, nebo je-li v obálce více lístků do téhož zastupitelstva – ty zadejte tlačítkem Neplatný.</li>
     </ul>
-    <p class="hint">Podle zákona č. 491/2001 Sb., o volbách do zastupitelstev obcí. Aplikace je pomůcka, závazný je zápis okrskové volební komise.</p>
+    <p class="hint">Podle zákona č. 491/2001 Sb., o volbách do zastupitelstev obcí (§ 34, 40, 41), a zákona č. 88/2024 Sb., o správě voleb (§ 64). Aplikace je pomůcka, závazný je zápis okrskové volební komise.</p>
   </section>
 </main>
 
@@ -316,11 +324,13 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
   <div class="wrap">
     <div class="status" id="status"></div>
     <div class="sheet-reasons" id="reasons" hidden>
-      <button class="btn small danger" data-reason="Neúřední tiskopis / mimo úřední obálku">Neúřední / bez obálky</button>
+      <button class="btn small danger" data-reason="Lístek nebyl zhotoven a dodán pro tyto volby">Neúřední lístek</button>
+      <button class="btn small danger" data-reason="Lístek není v úřední obálce">Mimo úřední obálku</button>
       <button class="btn small danger" data-reason="Více lístků v obálce">Více lístků v obálce</button>
       <button class="btn small danger" data-reason="Přetržený lístek">Přetržený</button>
       <button class="btn small danger" data-reason="Jiný důvod">Jiný důvod</button>
       <button class="btn small" data-reason="">Zrušit</button>
+      <span class="hint" style="width:100%">Poškozený nebo přeložený lístek je platný, pokud je čitelný. Fajfky, kroužky a škrtání se neberou v úvahu – zadejte jen křížky.</span>
     </div>
     <div class="actions">
       <button class="btn" id="clearSel">Vymazat</button>
@@ -1430,6 +1440,8 @@ const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 const SAMPLE = document.getElementById('kandidati-2026').textContent.trim();
 
 /* ---------- candidate list parsing ---------- */
+// a candidate who withdrew or was recalled (vzdal se / odvolán) – marked in the list as [VZDAL SE]
+const WMARK = /,?\s*\[\s*(?:VZDAL[AI]? SE|ODVOLÁN[AI]?|N)\s*\]/i;
 function parseList(text) {
   const parties = [], errors = [];
   let cur = null, lastCand = null;
@@ -1448,6 +1460,7 @@ function parseList(text) {
       const rest = m[2].replace(/^[,\s]+/, '');
       const ci = rest.indexOf(',');
       lastCand = { n: +m[1], name: (ci < 0 ? rest : rest.slice(0, ci)).trim(), info: ci < 0 ? '' : rest.slice(ci + 1).trim() };
+      if (WMARK.test(rest)) { lastCand.w = true; lastCand.name = lastCand.name.replace(WMARK, '').trim(); lastCand.info = lastCand.info.replace(WMARK, '').replace(/,\s*$/, '').trim(); }
       cur.cands.push(lastCand); return;
     }
     if (lastCand) lastCand.info = (lastCand.info ? lastCand.info + ', ' : '') + line;
@@ -1466,19 +1479,23 @@ function parseList(text) {
   return { parties, errors };
 }
 function listToText(parties) {
-  return parties.map(p => `# ${p.n} ${p.name}\n` + p.cands.map(c => `${c.n}. ${c.name}${c.info ? ', ' + c.info : ''}`).join('\n')).join('\n');
+  return parties.map(p => `# ${p.n} ${p.name}\n` + p.cands.map(c => `${c.n}. ${c.name}${c.info ? ', ' + c.info : ''}${c.w ? ', [VZDAL SE]' : ''}`).join('\n')).join('\n');
 }
 
 /* ---------- state ---------- */
 let cfg = load(LS_CFG, null);
 // sample = the built-in official list is in use; refresh it on every load so app updates reach the phone
-if (!cfg || !Array.isArray(cfg.parties) || cfg.sample) cfg = { seats: (cfg && cfg.seats) || 65, parties: parseList(SAMPLE).parties, sample: true };
+if (!cfg || !Array.isArray(cfg.parties) || cfg.sample) cfg = { seats: (cfg && cfg.seats) || 65, zapis: cfg && cfg.zapis, parties: parseList(SAMPLE).parties, sample: true };
 let ballots = load(LS_BAL, []);
 const draft = load(LS_DRAFT, {});
 let sel = { parties: new Set(draft.parties || []), cands: new Set(draft.cands || []) };
 let expanded = new Set(draft.expanded || []);
 let pIndex = new Map();
-function reindex() { pIndex = new Map(cfg.parties.map(p => [p.n, p])); }
+let withdrawn = new Set();
+function reindex() {
+  pIndex = new Map(cfg.parties.map(p => [p.n, p]));
+  withdrawn = new Set(cfg.parties.flatMap(p => p.cands.filter(c => c.w).map(c => `${p.n}:${c.n}`)));
+}
 reindex();
 const persistCfg = () => save(LS_CFG, cfg);
 const persistBallots = () => save(LS_BAL, ballots);
@@ -1505,15 +1522,20 @@ function evaluate(b) {
     const ignored = C.filter(k => pOf(k) === p);
     if (others.length > seats) return { valid: false, code: 'many', reason: `${others.length} kandidátů jiných stran – víc než ${seats}` };
     const party = pIndex.get(p);
+    // the party fills the places left after the individually marked candidates (crosses at withdrawn ones count here too),
+    // in ballot order, skipping its own withdrawn candidates
     const rest = seats - others.length;
-    const fromParty = party ? party.cands.slice(0, Math.max(0, rest)).map(c => `${p}:${c.n}`) : [];
+    const fromParty = party ? party.cands.filter(c => !c.w).slice(0, Math.max(0, rest)).map(c => `${p}:${c.n}`) : [];
+    const dead = others.filter(k => withdrawn.has(k));
     return {
       valid: true, mode: others.length ? 'mix' : 'party',
-      votes: others.concat(fromParty), fromParty: new Set(fromParty), ignored: new Set(ignored), party: p, others: others.length
+      votes: others.filter(k => !withdrawn.has(k)).concat(fromParty), fromParty: new Set(fromParty),
+      ignored: new Set(ignored), dead: new Set(dead), party: p, others: others.length
     };
   }
+  // crosses at withdrawn candidates still count towards the limit, but they get no vote
   if (C.length > seats) return { valid: false, code: 'many', reason: `Označeno ${C.length} kandidátů – víc než ${seats}` };
-  return { valid: true, mode: 'cands', votes: C, fromParty: new Set(), ignored: new Set() };
+  return { valid: true, mode: 'cands', votes: C.filter(k => !withdrawn.has(k)), fromParty: new Set(), ignored: new Set(), dead: new Set(C.filter(k => withdrawn.has(k))) };
 }
 
 function tally() {
@@ -1557,8 +1579,8 @@ function renderBallot() {
       body = '<ol class="cands">' + p.cands.map(c => {
         const k = `${p.n}:${c.n}`, on = sel.cands.has(k);
         const gets = voteSet.has(k), ign = r.valid && r.ignored.has(k);
-        const badge = gets ? `<span class="vote yes" title="${r.fromParty.has(k) ? 'hlas díky křížku u strany' : 'hlas za křížek u kandidáta'}">+1</span>` : (ign ? '<span class="vote no">nepočítá se</span>' : '<span></span>');
-        return `<li><button class="crow${on ? ' on' : ''}${ign ? ' ignored' : ''}" data-act="cand" data-k="${k}" aria-pressed="${on}">` +
+        const badge = gets ? `<span class="vote yes" title="${r.fromParty.has(k) ? 'hlas díky křížku u strany' : 'hlas za křížek u kandidáta'}">+1</span>` : (ign ? '<span class="vote no">nepočítá se</span>' : (c.w ? '<span class="vote no">vzdal se</span>' : '<span></span>'));
+        return `<li><button class="crow${on ? ' on' : ''}${ign || c.w ? ' ignored' : ''}" data-act="cand" data-k="${k}" aria-pressed="${on}">` +
           `<span class="box sm${on ? ' on' : ''}"></span><span class="cn">${c.n}.</span>` +
           `<span class="ctext"><span class="cname">${esc(c.name)}</span>${c.info ? `<span class="cinfo">${esc(c.info)}</span>` : ''}</span>${badge}</button></li>`;
       }).join('') + '</ol>' +
@@ -1587,6 +1609,7 @@ function renderStatus(r) {
     pill = '<span class="pill ok">Platný</span>';
     txt = `Lístek č. ${nb}: ${esc(describe(sel, r))}`;
     if (r.ignored.size) note = `${r.ignored.size}× křížek u kandidáta označené strany se nepočítá.`;
+    if (r.dead.size) note += `${note ? ' ' : ''}${r.dead.size}× křížek u kandidáta, který se vzdal – hlas nedostane, do limitu ${cfg.seats} se ale počítá.`;
     const unknown = r.votes.length === 0 && r.mode === 'party' ? 'Označená strana nemá v seznamu žádné kandidáty.' : '';
     if (unknown) note = unknown;
   }
@@ -1746,7 +1769,7 @@ let openRes = new Set();
 function renderResults() {
   const T = tally();
   $('tiles').innerHTML = [
-    ['Lístků celkem', T.total], ['Platných', T.valid], ['Neplatných', T.invalid, 'bad'], ['Platných hlasů', T.votes]
+    ['Zpracované lístky', T.total], ['Lístky s platným hlasem', T.valid], ['Neplatné hlasy', T.invalid, 'bad'], ['Platné hlasy celkem', T.votes]
   ].map(([k, v, c]) => `<div class="tile ${c || ''}"><div class="k">${k}</div><div class="v">${v.toLocaleString('cs-CZ')}</div></div>`).join('');
   const rows = cfg.parties.map(p => ({ p, v: p.cands.reduce((s, c) => s + (T.cv.get(`${p.n}:${c.n}`) || 0), 0) }));
   const max = Math.max(1, ...rows.map(r => r.v));
@@ -1760,9 +1783,29 @@ function renderResults() {
     }
   }
   $('resTable').innerHTML = html + '</tbody>';
+  renderEnvCheck(T);
   $('invReasons').innerHTML = T.reasons.size ? '<h2>Neplatné lístky podle důvodu</h2><div class="table-wrap"><table><tbody>' +
     [...T.reasons].map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${v}</td></tr>`).join('') + '</tbody></table></div>' : '';
 }
+// envelopes are counted by hand; every envelope holding a city ballot is one entered ballot (several ballots in one = one invalid)
+function renderEnvCheck(T) {
+  const z = cfg.zapis || {};
+  if (document.activeElement !== $('envIssued')) $('envIssued').value = z.issued ?? '';
+  if (document.activeElement !== $('envReturned')) $('envReturned').value = z.returned ?? '';
+  const msgs = []; let ok = true;
+  if (z.issued != null && z.returned != null && z.returned > z.issued) { ok = false; msgs.push(`Odevzdaných obálek (${z.returned}) je víc než vydaných (${z.issued}).`); }
+  if (z.returned != null) {
+    if (T.total > z.returned) { ok = false; msgs.push(`Zadáno ${pl(T.total, "lístek", "lístky", "lístků")}, ale odevzdaných obálek je jen ${z.returned}.`); }
+    else msgs.push(`Obálek bez lístku do zastupitelstva Prahy: ${z.returned - T.total}. Zadané lístky: ${T.total}, z toho s platným hlasem ${T.valid}.`);
+  }
+  if (!msgs.length) { $('envMsg').className = 'msg'; $('envMsg').textContent = ''; return; }
+  $('envMsg').className = 'msg ' + (ok ? 'ok' : 'bad'); $('envMsg').textContent = msgs.join(' ');
+}
+['envIssued', 'envReturned'].forEach(id => $(id).addEventListener('change', () => {
+  const v = $(id).value === '' ? null : Math.max(0, Math.floor(+$(id).value));
+  cfg.zapis = Object.assign({}, cfg.zapis, { [id === 'envIssued' ? 'issued' : 'returned']: v });
+  persistCfg(); renderResults();
+}));
 $('resTable').addEventListener('click', e => {
   const t = e.target.closest('tr.prow'); if (!t) return;
   const p = +t.dataset.p; openRes.has(p) ? openRes.delete(p) : openRes.add(p); renderResults();
@@ -1848,7 +1891,7 @@ $('xmlFile').addEventListener('change', async e => {
       if (!map.has(pn)) map.set(pn, { n: pn, name: names.get(pn) || `Strana ${pn}`, cands: [] });
       const name = [o.TITULPRED, o.JMENO, o.PRIJMENI, o.TITULZA].filter(Boolean).join(' ');
       const info = [o.VEK && `${o.VEK} let`, o.POVOLANI, o.BYDLISTEN].filter(Boolean).join(', ');
-      map.get(pn).cands.push({ n: +o.PORCISLO, name, info });
+      map.get(pn).cands.push({ n: +o.PORCISLO, name, info, w: o.PLATNOST === 'N' || /škrtnut|ponechal pozici volnou/i.test(name) || undefined });
     }
     const parties = [...map.values()].sort((a, b) => a.n - b.n);
     parties.forEach(p => p.cands.sort((a, b) => a.n - b.n));

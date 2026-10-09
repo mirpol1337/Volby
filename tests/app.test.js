@@ -60,7 +60,7 @@ async function results(page) {
   const cand = Object.fromEntries(await page.$$eval('#resTable tr.crow-r', rows => rows.map(r => [r.children[0].textContent.trim(), r.children[2].textContent])));
   const reasons = await page.textContent('#invReasons');
   const out = {
-    total: t['Lístků celkem'], valid: t['Platných'], invalid: t['Neplatných'], votes: t['Platných hlasů'],
+    total: t['Zpracované lístky'], valid: t['Lístky s platným hlasem'], invalid: t['Neplatné hlasy'], votes: t['Platné hlasy celkem'],
     party: Object.fromEntries(Object.entries(party).map(([k, v]) => [k, num(v)])),
     cand: Object.fromEntries(Object.entries(cand).map(([k, v]) => [k, num(v)])),
     reasons
@@ -177,6 +177,49 @@ test('strana + kandidáti jiných stran == počet míst → strana nic, platný'
   expectCands(r, { '2.1': 1, '2.2': 1, '3.1': 1, '1.1': 0 });
 });
 
+const LIST_W = `# 1 Strana A
+1. Anna Alfa
+2. Adam Beta, 40 let, [VZDAL SE]
+3. Aleš Gama
+4. Alena Delta
+# 2 Strana B
+1. Bára Jedna [VZDAL SE]
+2. Bohdan Dva
+# 3 Strana C
+1. Cyril Jedna`;
+test('kandidát, který se vzdal: hlas nedostane, strana přeskočí, do limitu se počítá', async page => {
+  await setup(page, { list: LIST_W, seats: 3 });
+  // party only: withdrawn 1.2 is skipped, 1.4 moves up
+  await code(page, '1'); await save(page);
+  // candidates only incl. withdrawn 2.1: crosses count but 2.1 gets nothing
+  await code(page, '2.1 2.2'); assert.match(await statusText(page), /vzdal/); await save(page);
+  // limit: 4 crosses (one withdrawn) with 3 seats → invalid
+  await code(page, '2.1 2.2 3.1 1.1'); assert.match(await statusText(page), /Neplatný/); await save(page);
+  // party 1 + withdrawn 2.1: the cross takes a place, party gets 2 (1.1, 1.3)
+  await code(page, '1 2.1'); await save(page);
+  const r = await results(page);
+  assert.deepEqual([r.total, r.valid, r.invalid], [4, 3, 1]);
+  expectCands(r, { '1.1': 2, '1.2': 0, '1.3': 2, '1.4': 1, '2.1': 0, '2.2': 1 });
+  assert.equal(r.votes, 6);
+  // the marker survives a round trip through the list editor
+  await tab(page, 'settings');
+  assert.match(await page.inputValue('#listText'), /2\. Adam Beta, 40 let, \[VZDAL SE\]\n/);
+  assert.match(await page.inputValue('#listText'), /1\. Bára Jedna, \[VZDAL SE\]/);
+});
+test('kontrola počtu obálek se zápisem', async page => {
+  await setup(page);
+  await code(page, '1'); await save(page);
+  await code(page, '2'); await save(page);
+  await tab(page, 'results');
+  await page.fill('#envIssued', '10'); await page.press('#envIssued', 'Tab');
+  await page.fill('#envReturned', '1'); await page.press('#envReturned', 'Tab');
+  assert.match(await page.textContent('#envMsg'), /Zadáno 2 lístky, ale odevzdaných obálek je jen 1/);
+  await page.fill('#envReturned', '5'); await page.press('#envReturned', 'Tab');
+  assert.match(await page.textContent('#envMsg'), /bez lístku do zastupitelstva Prahy: 3/);
+  await page.reload();
+  await tab(page, 'results');
+  assert.equal(await page.inputValue('#envReturned'), '5');
+});
 test('hromadné zadání ×N (strana i neplatné)', async page => {
   await setup(page);
   await tap(page, '#batchPanel > summary');
