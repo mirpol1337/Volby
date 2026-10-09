@@ -266,11 +266,12 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
     </label>
 
     <h2>Kandidátní listiny</h2>
+    <p class="hint"><b>Předvyplněno:</b> 24 kandidátních listin a 1 060 kandidátů z registru ČSÚ (volby.cz, stav k 23. 9. 2026). Změny po tomto datu (např. vzdání se kandidatury) v seznamu nejsou – porovnejte s lístkem.</p>
     <p class="hint">Řádek začínající <span class="mono">#</span> je strana (s vylosovaným číslem), řádek začínající číslem kandidát (pořadí na listině). Za jménem může po čárce následovat věk, povolání atd. Lze vložit i tabulku zkopírovanou z volby.cz – tabulátory se převedou na čárky.</p>
     <textarea id="listText" spellcheck="false" aria-label="Kandidátní listiny"></textarea>
     <div class="row">
       <button class="btn primary" id="applyList">Použít seznam</button>
-      <button class="btn" id="resetSample">Vrátit ukázku z lístku</button>
+      <button class="btn" id="resetSample">Vrátit oficiální seznam</button>
     </div>
     <div class="msg" id="listMsg"></div>
 
@@ -330,6 +331,1093 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<!-- Kandidátní listiny Zastupitelstvo hl. m. Prahy 2026, registr ČSÚ (KV2026, stav k 15.–23. 9. 2026) -->
+<script type="text/plain" id="kandidati-2026">
+# 1 LEPŠÍ ŽIVOT PRO LIDI – zrušení daně z nemovitostí, min. mzda 50.000 Kč, min. důchod 30.000 Kč, návrat cen energií na ceny z roku 2019, v obchodech zboží nejvyšší kvality za ceny dostupné pro každého, STOP válce
+1. Pavel Opl, 55 let, odborník na bezpečnost, emeritní policejní rada Policejního prezídia ČR, Praha 9, LŽPL, BEZPP
+2. Pavel May, 63 let, elektrikář, Praha 7, LŽPL, LŽPL
+3. Ing. Alexandr Gegalčij, 77 let, strojní inženýr, Praha 18, LŽPL, BEZPP
+4. Kristina Livoreka, 51 let, pracovnice diagnostického ústavu, Praha 7, LŽPL, BEZPP
+5. Miloš Sádecký, 62 let, obchodní manažer, Praha 10, LŽPL, ND
+6. Jan Panocha, 44 let, rentiér, Praha 11, LŽPL, ND
+7. Stanislav Filip, 49 let, pracovník soukromé bezpečnostní služby, Praha 8, LŽPL, BEZPP
+8. Šárka Heverlová, 42 let, maminka na mateřské dovolené, Praha 9, LŽPL, BEZPP
+9. Dušan Rudecký, 54 let, invalidní důchodce, bývalý voják z povolání, Praha 2, LŽPL, BEZPP
+10. Vojtěch Kudrna, 20 let, student, Praha 2, LŽPL, BEZPP
+# 2 ANO LEPŠÍ ČESKO S MIMOZEMŠŤANY
+1. Jiří Dubský, 56 let, elektrotechnik, Praha 5, mimozemstani.eu, mimozemstani.eu
+2. Jaroslav Čipka, 53 let, IT technik, Praha 12, mimozemstani.eu, mimozemstani.eu
+3. Jiří Koloušek, 81 let, podnikatel, emeritní letecký instruktor, Praha 4, NK, BEZPP
+# 3 Libertariánská strana Voluntia
+1. Tadeáš Janků, 24 let, student matfyzu, PKI konzultant, odborník na městské plánování se zkušenostmi ze Cities Skylines, Praha 8, Voluntia, Voluntia
+2. Jiří Fábera, 37 let, podnikatel, Praha 8, Voluntia, Voluntia
+3. Dr. Martin Šebesta MBA, 45 let, country manager, Praha 6, Voluntia, BEZPP
+4. Jindřich Stibor, 28 let, informatik, Praha 17, Voluntia, Voluntia
+5. Miroslav Olšák, 35 let, AI researcher, Praha 13, Voluntia, BEZPP
+6. Vojtěch Dlápal, 35 let, IT konzultant, Praha 10, Voluntia, BEZPP
+7. Jonáš Klos, 30 let, hudebník, Praha 8, Voluntia, BEZPP
+8. Václav Veselka, 35 let, anarchokapitalista a vítěz Ligy Mistrů ve Football manageru, Praha-Újezd, Voluntia, BEZPP
+9. Klára Staňková, 30 let, OSVČ, Praha 14, Voluntia, BEZPP
+10. Dominik Vlach, 27 let, řidič, Praha 8, Voluntia, BEZPP
+11. Tomáš Růžička, 39 let, podnikatel, Praha 8, Voluntia, BEZPP
+12. Radek Tonar, 24 let, biomedicínský technik, Praha 9, Voluntia, BEZPP
+13. Jiří Čepelka, 21 let, OSVČ, Lukavice, Voluntia, Voluntia
+14. Bc. Tomáš Roud, 48 let, expert na terapii tmou, Lomec, Voluntia, Voluntia
+15. Vratislav Švejda, 30 let, software tester, Praha 20, Voluntia, BEZPP
+# 4 Urza.cz: Nechceme vaše hlasy; ke svobodě se nelze provolit. Odmítneme každou politickou funkci; nechceme totiž lidem nařizovat, jak mají žít. Máme jinou vizi. Jdeme jinou cestou — najdete ji na webu www.urza.cz.
+1. Martin Urza, 39 let, anarchista, Praha 5, Nevolte Urza.cz, Nevolte Urza.cz
+# 5 PRAHA SOBĚ
+1. Ing. Adam Scheinherr MSc., Ph.D., 39 let, strojař, předseda PRAHA SOBĚ, bývalý náměstek primátora pro dopravu, pedagog na ČVUT, řidič autobusu, Praha 7, PRAHA SOBĚ, PRAHA SOBĚ
+2. MgA. Hana Třeštíková, 44 let, místostarostka Prahy 7 pro kulturu, producentka dokumentárních filmů, kulturní influencerka, Praha 7, PRAHA SOBĚ, PRAHA SOBĚ
+3. Mgr. Jan Čižinský, 48 let, starosta Prahy 7, historik, středoškolský učitel, Praha 7, PRAHA SOBĚ, PRAHA SOBĚ
+4. Ing. Mariana Čapková MBA, 43 let, místostarostka Prahy 6, ekonomka se zaměřením na mezinárodní vztahy, expertka na vzdělávání, předsedkyně Výboru pro sport a volný čas Zastupitelstva hl. m. Prahy, Praha 6, PRAHA SOBĚ, PRAHA SOBĚ
+5. Mgr. Tomáš Kaplan, 54 let, advokát, zastupitel Prahy 4, Praha 4, PRAHA SOBĚ, KDU-ČSL
+6. Mgr. Radka Šimková, 55 let, advokátka, bývalá starostka Prahy 5, Praha 5, PRAHA SOBĚ, PRAHA SOBĚ
+7. Mgr. David Bouz, 29 let, právník, vysokoškolský pedagog, Praha 10, PRAHA SOBĚ, PRAHA SOBĚ
+8. Mgr. BcA. Veronika Šmausová, 40 let, učitelka, PR v environmentální oblasti, Praha 10, PRAHA SOBĚ, Zelení
+9. PhDr. Jan Jaroš, 48 let, místostarosta Prahy 11 pro sociální věci a zdravotnictví, redaktor, historik, Praha 11, PRAHA SOBĚ, PRAHA SOBĚ
+10. Bc. Jana Bašusová, 41 let, projektová manažerka, zastupitelka Prahy 2, organizátorka akce Nusle dětem, Praha 2, PRAHA SOBĚ, PRAHA SOBĚ
+11. Mgr. Pavel Mareš, 50 let, zastupitel hl. m. Prahy, šéfredaktor nakladatelství, Praha 10, PRAHA SOBĚ, KDU-ČSL
+12. MgA. Kamila Matějková, 50 let, zastupitelka hl. m. Prahy, místostarostka Prahy 9 pro sociální oblast, zdravotnictví a sousedské vztahy, divadelní produkční, Praha 9, PRAHA SOBĚ, PRAHA SOBĚ
+13. Petr Kutílek M.A., M.S., 50 let, zastupitel Prahy 4, vysokoškolský učitel, analytik, Praha 4, PRAHA SOBĚ, BEZPP
+14. Mgr. Jiří Knitl, 51 let, zastupitel hl. m. Prahy, předseda Výboru pro národnostní menšiny zastupitelstva hl. m. Prahy, radní Prahy 7 pro životní prostředí a veřejný prostor, etnolog, Praha 7, PRAHA SOBĚ, PRAHA SOBĚ
+15. Petr Zeman, 58 let, zastupitel hl.m. Prahy a Prahy 14, odborník v analytice a specialista územního rozvoje, Praha 14, PRAHA SOBĚ, PRAHA SOBĚ
+16. Mgr. Adam Šilar, 33 let, zastupitel Prahy 10 pro digitalizaci a komunikační nástroje, Praha 10, PRAHA SOBĚ, KDU-ČSL
+17. PhDr. Petr Palacký Ph.D., 41 let, radní Prahy 6 pro životní prostředí a klima, historik, expert na téma cenzury, Praha 6, PRAHA SOBĚ, Zelení
+18. Bc. Alena Janďourková, 40 let, zastupitelka Prahy 5, specialistka na systémovou podporu vedení škol v neziskovém sektoru, Praha 5, PRAHA SOBĚ, BEZPP
+19. Bc. Verona Ballay, 44 let, zastupitelka a předsedkyně kontrolního výboru zastupitelstva Prahy 12, manažerka pro veřejnou správu a vnější vztahy, Praha 12, PRAHA SOBĚ, PRAHA SOBĚ
+20. Mgr. Eva Svobodová, 44 let, zastupitelka Praha Kunratice, OSVČ, překladatelka, Praha-Kunratice, PRAHA SOBĚ, PRAHA SOBĚ
+21. Jonáš Felkel, 25 let, opoziční zastupitel a předseda kontrolního výboru Prahy 1, student Právnické fakulty UK, Praha 1, PRAHA SOBĚ, PRAHA SOBĚ
+22. Bc. Sylva Svobodová, 51 let, pedagožka, metodička vzdělávání, předsedkyně výboru Prahy 7 pro vzdělávání, sociální politiku a zdravotnictví, Praha 7, PRAHA SOBĚ, PRAHA SOBĚ
+23. Václav Stránský, 48 let, zastupitel Prahy 8, manažer v letectví, podnikatel, Praha 8, PRAHA SOBĚ, 8žije
+24. Mgr. Zuzana Habartová, 47 let, zastupitelka Prahy 14, konzultantka pro digitalizaci a IT, Praha 14, PRAHA SOBĚ, PRAHA SOBĚ
+25. Mgr. Filip Málek, 34 let, místostarosta Prahy 3 pro školství, Praha 3, PRAHA SOBĚ, PRAHA SOBĚ
+26. Luisa Suchochlebová, 23 let, studentka etnologie na FF UK, manažerka v oblasti kultury, členka předsednictva Mladých Zelených, Praha 5, PRAHA SOBĚ, Zelení
+27. Ing. Ondřej Lang Svoboda, 32 let, energetik, zastupitel Prahy 11, Praha 11, PRAHA SOBĚ, PRAHA SOBĚ
+28. Ing. Ina Koldová, 51 let, podnikatelka, dobrovolnice Červeného kříže, členka předsednictva spolku Nebourat, Praha 4, PRAHA SOBĚ, BEZPP
+29. Ing. Ladislav Pelcl, 44 let, zastupitel Prahy 12, vedoucí vývoje IT řešení pro energetiku, Praha 12, PRAHA SOBĚ, PRAHA SOBĚ
+30. Mgr. Amália Počarovská, 38 let, ekonomka a analytička veřejných financí, Praha 1, PRAHA SOBĚ, PRAHA SOBĚ
+31. Ing. Lucie Procházková, 28 let, software engineer, Praha 6, PRAHA SOBĚ, KDU-ČSL
+32. Mgr. Jana Jebavá, 43 let, grafička, Praha 7, PRAHA SOBĚ, Zelení
+33. Ing. arch. Martin Šnobr, 26 let, architekt, urbanista, šéfredaktor magazínu Městem na kole, Praha 1, PRAHA SOBĚ, PRAHA SOBĚ
+34. Mgr. Lucie Boudová Ph.D., 43 let, manažerka IT projektů, zastupitelka Prahy 5, Praha 5, PRAHA SOBĚ, PRAHA SOBĚ
+35. doc. Ing. Pavel Peterka Ph.D., 56 let, pracovník výzkumu a vývoje, člen spolku Cibulka, Praha 5, PRAHA SOBĚ, KDU-ČSL
+36. Ing. Kamila Sirotná, 45 let, vědecká pracovnice, konzultantka udržitelnosti, Praha 4, PRAHA SOBĚ, Zelení
+37. RNDr. Michal Šorel Ph.D., 51 let, zastupitel Prahy 9, vědecký pracovník Akademie věd ČR, Praha 9, PRAHA SOBĚ, PRAHA SOBĚ
+38. Ing. Kateřina Knoblochová, 48 let, manažerka v oblasti autorských práv, Praha 3, PRAHA SOBĚ, PRAHA SOBĚ
+39. mjr. v záloze Ing. Bc. Beno Ge MPA, 44 let, bývalý vojenský pilot, válečný veterán, podnikatel, bezpečnostní expert, Praha 1, PRAHA SOBĚ, PRAHA SOBĚ
+40. Ing. Monika Martišková Ph.D., 40 let, iniciátorka petice za Drážní promenádu, členka spolku Na Padesátém, socioložka, Praha 10, PRAHA SOBĚ, PRAHA SOBĚ
+41. Ing. arch. Matěj Michalk Žaloudek, 40 let, architekt a urbanista, Praha 3, PRAHA SOBĚ, Zelení
+42. Martin Tománek, 55 let, radní městské části Praha 7, Praha 7, PRAHA SOBĚ, PRAHA SOBĚ
+43. Mgr. Kateřina Linková, 44 let, zastupitelka Praha-Kunratice, expertka na rodinnou a sociální politiku, socioložka, Praha-Kunratice, PRAHA SOBĚ, PRAHA SOBĚ
+44. PhDr. Bc. Daniela Rázková, 64 let, zastupitelka Prahy 12, sociální pracovnice, Praha 12, PRAHA SOBĚ, KDU-ČSL
+45. Michal Kočandrle, 53 let, zastupitel Prahy 5, datový inženýr, Praha 5, PRAHA SOBĚ, PRAHA SOBĚ
+46. Bc. et Bc. Vladimíra Mušálková, 37 let, zastupitelka Prahy 9, ředitelka nevládní organizace v oblasti mezinárodních vztahů na rodičovské dovolené, Praha 9, PRAHA SOBĚ, PRAHA SOBĚ
+47. PhDr. Jakub Cháb, 63 let, učitel, manažer v důchodu, Praha 3, PRAHA SOBĚ, PRAHA SOBĚ
+48. Bc. Barbora Truksová, 36 let, zastupitelka Prahy 6, redaktorka v Národním divadle, taneční publicistka, Praha 6, PRAHA SOBĚ, Zelení
+49. MUDr. Tom Philipp Ph.D., MBA, 57 let, lékař, přednosta kliniky, poslanec, Praha 12, PRAHA SOBĚ, KDU-ČSL
+50. Johana Pscheidtová DiS., 46 let, zastupitelka Prahy 2, grafická designérka, Praha 2, PRAHA SOBĚ, PRAHA SOBĚ
+51. Mgr. Pavel Podzemský, 58 let, obchodní ředitel pro nadnárodní společnost a personalista, zastupitel Prahy 13, Praha 13, PRAHA SOBĚ, PRAHA SOBĚ
+52. Šárka Růžičková, 44 let, učitelka MŠ (pedagožka), lektorka, Praha-Újezd, NK, BEZPP
+53. Mgr. Bc. Emil Patta, 40 let, živnostník, Praha 10, PRAHA SOBĚ, PRAHA SOBĚ
+54. Mgr. Anna Junková, 40 let, právnička, Praha 2, PRAHA SOBĚ, Zelení
+55. Bc. Filip Musil, 38 let, zastupitel Prahy 22, specialista pro web a marketing, Praha 22, PRAHA SOBĚ, PRAHA SOBĚ
+56. Ing. Jana Maršálková, 43 let, ekonomka, Praha-Kunratice, PRAHA SOBĚ, PRAHA SOBĚ
+57. Mgr. Michal Tobrman, 43 let, zastupitel Prahy 2, středoškolský učitel historie, Praha 2, PRAHA SOBĚ, PRAHA SOBĚ
+58. Ing. Ondřej Buršík MPA, 33 let, zastupitel Prahy 8, jaderný inženýr, Praha 8, PRAHA SOBĚ, PRAHA SOBĚ
+59. RNDr. Pavla Tůmová Ph.D., 52 let, zastupitelka Praha-Libuš, vědecká pracovnice a VŠ pedagožka, Praha-Libuš, PRAHA SOBĚ, KDU-ČSL
+60. Mgr. Veronika Mirovská, 50 let, ředitelka vzdělávací agentury, Praha-Satalice, NK, BEZPP
+61. Mgr. Vít Masare, 39 let, sociální a bezpečnostní poradce, Praha 1, PRAHA SOBĚ, Zelení
+62. Mgr. Marie Korseltová DiS., 45 let, učitelka německého jazyka, sportovní cvičitelka, členka komise pro výchovu a vzdělávání, Praha 6, PRAHA SOBĚ, PRAHA SOBĚ
+63. Ing. arch. Viktor Tonner, 47 let, architekt, kreativní ředitel, Praha 3, PRAHA SOBĚ, PRAHA SOBĚ
+64. Mgr. Tomáš Václav Jirsák, 54 let, generální prezident Havran, sinolog, pedagog, tlumočník, předseda z.s. POČIN - POČERNICKÁ INICIATIVA, Praha-Dolní Počernice, PRAHA SOBĚ, KDU-ČSL
+65. Mgr. Kateřina Tisová, 28 let, analytička veřejných politik se zaměřením na vzdělání a participaci, Praha 1, PRAHA SOBĚ, PRAHA SOBĚ
+# 6 VELKÝ KŘÍŽEK PRO LÍTAČKU ZA KAČKU - SOUSEDÉ PRO PRAHU
+1. Hugo Štolba, 20 let, student fakulty elektrotechnické ČVUT a mechatronik, Praha 8, NK, BEZPP
+2. Dita Jarošová DiS., 49 let, učitelka, Dvůr Králové nad Labem, LANO, LANO
+3. Zuzana Pípová, 33 let, dělnice v chráněné dílně, Praha 13, LANO, BEZPP
+4. Ing. Tomáš Frýda, 36 let, softwarový inženýr, Praha 6, NK, BEZPP
+# 7 Česká pirátská strana
+1. Ing. Tereza Nislerová MA, MIM, 42 let, ekonomka a manažerka, odbornice na férovou hospodářskou soutěž s pětiletou praxí z Evropské komise, zastupitelka Prahy 4, Praha 4, Piráti, Piráti
+2. Mgr. Adam Zábranský, 32 let, právník, radní hl. města Prahy pro majetek, transparentnost a legislativu, Praha 10, Piráti, Piráti
+3. Mgr. Ing. Jaromír Beránek, 40 let, náměstek primátora hl. města Prahy pro dopravu, finanční manažer, Praha 22, Piráti, Piráti
+4. Mgr. Zuzana Freitas Lopesová, 58 let, projektová manažerka v lidsko-právní oblasti, odbornice na sociální politiku a bydlení, zastupitelka hl. města Prahy, Praha 10, Piráti, Piráti
+5. Václav Vislous MSc., 38 let, ekonom, podnikatel, projektový manažer, zastupitel MČ Praha 9, Praha 9, Piráti, Piráti
+6. Magdalena Valdmanová, 45 let, předsedkyně Výboru pro bydlení a bytovou výstavbu, zastupitelka hl. města Praha, Praha 2, Piráti, Piráti
+7. Jana Kabelová, 67 let, projektantka a rozpočtářka, specialistka na veřejné zakázky, Praha 6, Piráti, Piráti
+8. Ing. Ondřej Vojta, 26 let, dobrovolný hasič a trenér mládeže, marketingový specialista, zastupitel Prahy-Petrovic, Praha-Petrovice, Piráti, Piráti
+9. Mgr. Zuzana Böhmová, 36 let, místostarostka MČ Praha 11, středoškolská pedagožka, Praha 11, Piráti, Piráti
+10. MUDr. Zdeněk Hřib, 45 let, poslanec Parlamentu ČR, předseda České pirátské strany, vystudovaný lékař, Praha 10, Piráti, Piráti
+11. Mgr. Tomáš Liškutín, 42 let, advokát, lektor, zastupitel MČ Praha 4, Praha 4, Piráti, Piráti
+12. PhDr. Veronika Nürnbergerová Ph.D., C.A.S., 55 let, vysokoškolská pedagožka, fakultní ombudsmanka na Univerzitě Karlově, sboristka, Praha-Kunratice, Piráti, Piráti
+13. Mgr. Zuzana Lajksnerová, 34 let, finanční analytička, zastupitelka MČ Praha 10, Praha 10, Piráti, Piráti
+14. Mgr. Martin Štěrba, 39 let, zastupitel a předseda kontrolního výboru Prahy 8, marketér a stratég, ředitel hudebního festivalu, Praha 8, Piráti, Piráti
+15. Mgr. Tomáš Bederka, 37 let, marketingový ředitel Univerzity Karlovy, Praha 5, Piráti, Piráti
+16. Martin Rota, 38 let, influencer a popularizátor vědy, podnikatel, Praha 7, Piráti, BEZPP
+17. Viktor Mahrik, 44 let, předseda Výboru pro technickou infrastrukturu a vybavenost ZHMP, Praha 6, Piráti, Piráti
+18. MUDr. Albert Štěrba Ph.D., MBA, 32 let, neurochirurg, předseda spolku Mladí lékaři, vysokoškolský pedagog, člen Dozorčí rady VZP, Praha 2, Piráti, Piráti
+19. Ing. Gabriela Lněničková MBA, 47 let, zastupitelka hl. města Prahy, ekonomka, projektová manažerka, šachistka, Praha-Suchdol, Piráti, Piráti
+20. Ing. Jan Hora, 42 let, IT analytik, člen výboru pro bezpečnost ZHMP, zastupitel MČ Prahy 4, Praha 4, Piráti, Piráti
+21. Bc. Jan Bartko, 36 let, radní pro finance a životní prostředí MČ Praha 3, Praha 3, Piráti, Piráti
+22. Ing. Jan Borovička, 25 let, projektový a HR manažer, PR specialista, moderátor a copywriter, Praha 8, Piráti, Piráti
+23. Mgr. Jana Raiterová, 55 let, profesorka na Pražské konzervatoři a na Konzervatoři a VOŠ J. Ježka v Praze, klavíristka, Praha 1, Piráti, Piráti
+24. Bc. Josef Kubát, 30 let, asistent radního HMP pro ICT, Smart City, vědu, výzkum a inovace, Praha 10, Piráti, Piráti
+25. Mgr. Martin Duška, 34 let, vývoj městského mobiliáře, politolog, Praha 11, Piráti, Piráti
+26. Ellen Anna Kovačíková, 20 let, studentka pedagogiky na Univerzitě Karlově, umělkyně, Praha 2, Piráti, Piráti
+27. Bc. Jakub Rychlý, 24 let, zakladatel Nekrachni, bývalý mladý delegát do OSN, aktivní záloha vojenské policie Armády ČR, předseda Piráti Praha 3, Praha 3, Piráti, Piráti
+28. Mgr. Eva Danis MBA, 46 let, pěstounka, poradkyně pro technickou infrastrukturu, Praha 5, Piráti, Piráti
+29. Ing. Václav Okapa MBA, 39 let, finanční manažer, zastupitel MČ Praha 9, Praha 9, Piráti, Piráti
+30. Ing. Michal Gust, 51 let, IT architekt, Praha 15, Piráti, BEZPP
+31. Mgr. Bara Soukup, 38 let, geoinformatička, zastupitelka hl. m. Prahy, Praha 3, Piráti, Piráti
+32. Šimon Reizer, 23 let, student medicíny, Praha 13, Piráti, Piráti
+33. RNDr. Karel Kolář Ph.D., 36 let, redaktor učebnic, organizátor aktivit pro mládež, Praha 9, Piráti, Piráti
+34. Bc. Jiří Svrček, 34 let, arborista, Praha 3, Piráti, Piráti
+35. Ing. Ivana Wurmová, 70 let, ekonomka, finanční manažerka, zastupitelka MČ Praha 4, Praha 4, Piráti, Piráti
+36. Bc. Annette Heidlová, 38 let, IT specialistka bezpečnosti aplikací, lektorka českého jazyka pro cizince, Praha 9, Piráti, Piráti
+37. Ing. Kateřina Hunalová, 47 let, ekonomka, procesní analytička, Praha 9, Piráti, BEZPP
+38. Mgr. Andrea Vildová, 38 let, učitelka, Praha 8, Piráti, Piráti
+39. Andrea Chlopčíková, 39 let, asistentka poslance, Praha 5, Piráti, Piráti
+40. Ing. Petr Hukal DiS., Ph.D., 46 let, projektový manažer, bývalý místostarosta MČ Praha 14, Praha 14, Piráti, BEZPP
+41. Mgr. Zuzana Ujhelyiová, 43 let, manažerka digitalizačních projektů, Praha 11, Piráti, Piráti
+42. Antonín Štogr Vlk, 41 let, obchodní ředitel v sociálním podniku Pivovar Chříč, Praha 6, Piráti, Piráti
+43. JUDr. Ing. Jakub Backa, 39 let, advokát a insolvenční správce, Praha 6, Piráti, Piráti
+44. Mgr. Ondřej Vykoukal, 38 let, ředitel cirkusu a divadla, právník, Praha 6, Piráti, Piráti
+45. Kristýna Marie Pokorná, 21 let, studentka politologie, Praha 13, Piráti, Piráti
+46. Jan Zavadil, 43 let, produktový manažer, zastupitel MČ Praha - Petrovice, Praha-Petrovice, Piráti, Piráti
+47. Ing. Jana Budařová, 47 let, produktová manažerka, Praha 10, Piráti, Piráti
+48. Ondřej Pastyřík, 28 let, IT administrátor, fotograf, Praha 7, Piráti, Piráti
+49. Mgr. Karolína Zapotilová, 27 let, právnička v oblasti životního prostředí, Praha 6, Piráti, Piráti
+50. Eduard Horák, 44 let, IT expert, zastupitel MČ Praha 18, Praha 18, Piráti, Piráti
+51. Ing. Ivan Štěpka, 38 let, státní zaměstnanec v oblasti životního prostředí, Praha 12, Piráti, Piráti
+52. Ing. Petr Kolář, 34 let, programátor, Praha 13, Piráti, Piráti
+53. Mgr. Jan Kříž, 40 let, univerzitní pracovník, vedoucí resortního týmu školství, člen finančního výboru Prahy 14, Praha 14, Piráti, Piráti
+54. Lukáš Cígler, 42 let, odborník na kybernetickou bezpečnost, Praha-Řeporyje, Piráti, BEZPP
+55. Ing. Martin Altschmied MBA, 43 let, IT manažer, pivovarník, Praha 2, Piráti, Piráti
+56. MUDr. Jana Tomasová Studýnková Ph.D., 52 let, lékařka, vědkyně, odborná asistentka na vysoké škole, Praha-Kunratice, Piráti, BEZPP
+57. Bc. Maki Němečková, 24 let, průvodkyně v cestovním ruchu, studentka, Praha-Dolní Měcholupy, Piráti, Piráti
+58. Jaroslava Nárožná, 63 let, spoluprovozovatelka divadla pro děti, osobní asistent v sociálních službách, Praha 1, Piráti, Piráti
+59. Mgr. Jan Macháček, 54 let, učitel, trenér rugby, Praha 5, Piráti, Piráti
+60. Mgr. Jan Mejsnar Ph.D., 41 let, učitel fyziky a zeměpisu na ZŠ, meteorolog, Praha 11, Piráti, Piráti
+61. Mgr. Ivana Veselá LL.M., 50 let, IT manažerka, Praha-Velká Chuchle, Piráti, Piráti
+62. Ing. Kornélia Gottmannová, 54 let, učitelka na 2. stupni ZŠ, zastupitelka MČ Praha 9, Praha 9, Piráti, Piráti
+63. Darek Černý, 38 let, marketingový analytik, Praha 17, Piráti, BEZPP
+64. MUDr. Matěj Veselovský, 29 let, analytik ve zdravotnictví, Praha 4, Piráti, Piráti
+65. Jiří Dohnal, 49 let, člen Rady MČ Praha 11, projektový manažer, Praha 11, Piráti, Piráti
+# 8 Česká strana asociálů
+1. Lia Nova, 26 let, student, konspirační teoretik, Praha 5, ČSA, ČSA
+2. Melisa Hujerová, 18 let, student, profesionální jedlík, Praha 18, ČSA, ČSA
+3. Tomáš Vrla, 18 let, analytik digitálních médií, Praha 15, ČSA, BEZPP
+# 9 STAROSTOVÉ A NEZÁVISLÍ
+1. doc. Ing. arch. Petr Hlaváček, 65 let, architekt, urbanista, vysokoškolský pedagog, náměstek primátora pro územní a strategický rozvoj, Praha 1, STAN, STAN
+2. Mgr. Eliška Čepová, 37 let, projektová manažerka, Praha 10, STAN, STAN
+3. Mgr. et Mgr. Antonín Klecanda, 45 let, radní hl. m. Prahy pro školství, sport a volný čas, pedagog na ZŠ a VŠ, Praha-Kolovraty, STAN, STAN
+4. Mgr. Hana Novotná, 35 let, zastupitelka Prahy 8, manažerka, Praha 8, STAN, STAN
+5. Mgr. Pavel Dobeš, 44 let, místostarosta Prahy 3 pro územní rozvoj, rozvoj lokality Nákladového nádraží Žižkov a sport, Praha 3, STAN, STAN
+6. MgA. Petr Prokop, 48 let, producent, herec, statutární místostarosta Prahy 6, Praha 6, STAN, STAN
+7. Mgr. Nikola Turková, 32 let, advokátka se specializací na fungování měst a rozvoj sportu, Praha 12, STAN, STAN
+8. Ing. Michal Biskup, 54 let, starosta Prahy-Vinoře, zastupitel hl. m. Prahy, Praha-Vinoř, STAN, STAN
+9. JUDr. Tomáš Homola, 61 let, zastupitel Prahy 5, pověřený koordinací stavby ZŠ Madeleine Albrightové na Smíchově, advokát, Praha 5, STAN, STAN
+10. Pavla Fischerová, 41 let, místostarostka Prahy-Klánovic, Praha-Klánovice, STAN, STAN
+11. Mgr. Pavel Pospíšek, 33 let, sportovní trenér dětí a mládeže, Praha 9, STAN, STAN
+12. PhDr. Lukáš Kaiser Zicha, 43 let, zastupitel Prahy 4 s vizí dostupného bydlení pro mladé a seniory, propagátor domácí péče, Praha 4, STAN, STAN
+13. MUDr. Aleš Vícha Ph.D., 55 let, dětský onkolog, Praha 13, STAN, STAN
+14. Ing. Tomáš Hřebík Ph.D., 46 let, místostarosta Prahy 8, učitel na VŠE v Praze, dobrovolný hasič, člen Sokola, Praha 8, STAN, STAN
+15. Ing. Bc. Radka Soukupová, 65 let, ředitelka dětského domova, zastupitelka Prahy 11, Praha 11, STAN, STAN
+16. Mgr. Jana Štrosová, 61 let, pedagožka, Praha 4, STAN, STAN
+17. Mgr. et Mgr. Barbora Zapletalová, 36 let, podniková právnička, bezpečnostní specialistka, Praha 9, STAN, STAN
+18. Mgr. Kateřina Arnotová, 52 let, zastupitelka hl. m. Prahy, právnička, Praha-Čakovice, STAN, STAN
+19. Jaroslav Miko, 50 let, řidič kamionu, občanský aktivista, moderátor, Praha 10, STAN, STAN
+20. David Skála, 38 let, místostarosta Prahy-Suchdola, manažer v kultuře, Praha-Suchdol, STAN, BEZPP
+21. MgA. David Kašpar, 49 let, místostarosta Prahy 10, vysokoškolský pedagog, kulturní manažer, Praha 10, STAN, STAN
+22. Ing. Pavel Novák, 44 let, stavební inženýr, místopředseda SVJ, Praha-Čakovice, STAN, STAN
+23. Mgr. Karel Koželuh, 50 let, vedoucí odboru pro právní věci Národního technického muzea, zastupitel Prahy 2, Praha 2, STAN, STAN
+24. Mgr. Tereza Zubíčková Čistecká, 34 let, manažerka v oboru vzdělávání, Praha 6, STAN, STAN
+25. Mgr. Jan Vocel, 34 let, projektový manažer, člen spolku Krásné Kobylisy, Praha 8, STAN, STAN
+26. Mgr. Vlaďka Matušková MSc., 44 let, specialistka na životní prostředí a udržitelnost, Praha 2, STAN, STAN
+27. Ivan Hýža, 61 let, místostarosta Prahy-Kunratic, Praha-Kunratice, STAN, STAN
+28. Mgr. Nataliya Kolomičenková, 39 let, právnička, Praha-Kunratice, STAN, STAN
+29. MgA. David Dušek, 57 let, místostarosta Prahy 5, předseda správní rady Knihovny Václava Havla, Praha 5, STAN, STAN
+30. RNDr. Jana Plamínková, 67 let, starostka Prahy-Slivence, Praha-Slivenec, STAN, STAN
+31. Mgr. Ing. Ondřej Lagner Ph.D., 36 let, akademický pracovník, Praha 22, STAN, STAN
+32. Ing. Marie Kučerová, 74 let, ekonomka, Praha 21, STAN, STAN
+33. Ing. Bc. Lukáš Tůma MBA, 39 let, ekolog, vedoucí odboru, Praha 7, STAN, STAN
+34. Ing. Ondřej Šimíček, 46 let, specialista na digitalizaci veřejné správy, Praha 10, STAN, STAN
+35. Ing. Monika Žubretovská, 58 let, kontrolorka evropských dotací, Praha 14, STAN, STAN
+36. Ing. Petr Hejma, 57 let, ekonom, zastupitel a bývalý starosta Prahy 1, Praha 1, STAN, STAN
+37. Kestrina Fila Peza BA, MBA, 47 let, soudní tlumočnice a překladatelka albánského jazyka, Praha 10, STAN, STAN
+38. Mgr. Jan Dobeš, 49 let, rodinný psychoterapeut, školní psycholog, Praha 5, STAN, STAN
+39. Jonáš Zejfart M.A., 32 let, starosta Prahy-Kolovrat, Praha-Kolovraty, STAN, STAN
+40. Aneta Ečeková Maršálová, 50 let, koordinátorka onkologické péče ÚVN, propagátorka bezbariérovosti, Praha 13, STAN, STAN
+41. Ing. David Ptáček, 56 let, OSVČ, Praha 6, STAN, STAN
+42. Eliška Gemperle, 21 let, právní asistentka, studentka Právnické fakulty UK, Praha 5, STAN, BEZPP
+43. Mgr. Petr Karvánek, 67 let, ředitel základní školy, Praha 6, STAN, STAN
+44. Ing. Jaroslav Musil MBA, 51 let, ředitel pro strategii a rozvoj, Praha 3, STAN, STAN
+45. Mgr. Pavel Křeček, 44 let, radní Prahy 3 pro oblast kultury, advokát, Praha 3, STAN, STAN
+46. Anna Geröová, 20 let, studentka, Praha 5, STAN, BEZPP
+47. Vojtěch Ludvík, 25 let, paralegal, asistent poslance, lídr Starostů na Praze 13, Praha 13, STAN, STAN
+48. Mgr. Michal Andelek, 39 let, projektový manažer strategických projektů, Praha-Zbraslav, STAN, STAN
+49. Mgr. Libor Procházka, 39 let, expert na digitální marketing, Praha 6, STAN, STAN
+50. Petr Vlasák, 63 let, produkční, motorkář, předseda spolku tatínků, Praha 1, STAN, STAN
+51. Josefína Kurfürstová M.A., 31 let, datová analytička, Praha 14, STAN, STAN
+52. Ing. Alois Vokoun, 31 let, výzkumný pracovník v oblasti kulturní krajiny a sídel, Praha 9, STAN, STAN
+53. Mgr. et Mgr. Jitka Voltová, 28 let, analytička ve vzdělávání, Praha 10, STAN, STAN
+54. JUDr. Ondřej Ertl, 39 let, právník, Praha 10, STAN, STAN
+55. Ing. arch. Regina Loukotová Ph.D., 54 let, architektka a rektorka vysoké školy, Praha 6, STAN, STAN
+56. Mgr. Milada Voborská, 54 let, starostka Prahy-Satalic, editorka, Praha-Satalice, STAN, STAN
+57. Mgr. Karel Polák MBA, 39 let, bezpečnostní ředitel, Praha-Dubeč, STAN, STAN
+58. Mgr. Natálie Daňková, 26 let, Social Media Manager, Praha 3, STAN, STAN
+59. Daniel Rusiňák, 19 let, student, dobrovolný hasič, operátor na operačním středisku, Praha 18, STAN, STAN
+60. Arina Dolgopolova, 23 let, studentka Právnické fakulty UK, Praha 18, STAN, STAN
+61. Pavel Hřebík, 52 let, manažer pojišťovny, Praha-Satalice, STAN, STAN
+62. doc. Ing. Lucie Sedmihradská Ph.D., 52 let, poslankyně, pedagožka VŠE, Praha 10, STAN, STAN
+63. Tomáš Novotný, 42 let, zastupitel Prahy-Zbraslav, odborový funkcionář (předseda odborové organizace), Praha-Zbraslav, STAN, STAN
+64. Vojtěch Zelenka, 43 let, mediální poradce Starostů, Praha 22, STAN, STAN
+65. prof. Ing. Michael Šebek DrSc., 72 let, profesor ČVUT, Praha 6, STAN, BEZPP
+# 10 SPD pro Prahu s podporou Trikolory, PRO, Přísahy a nezávislých kandidátů
+1. Dr.-Ing. Milan Urban, 66 let, zastupitel hl. města Prahy, architekt, urbanista, Praha 11, SPD, SPD
+2. Jiří Fořt DiS., 48 let, majitel malostranské restaurace, krizový manažer, Praha 1, SPD, SPD
+3. prof. MUDr. Zdeněk Seidl CSc., 76 let, zastupitel hl. m. Prahy, vysokoškolský pedagog, lékař 1. lékařské fakulty UK, Praha 5, SPD, BEZPP
+4. Jan Čížek, 50 let, pražský vydavatel, publicista a patriot, Praha 10, SPD, SPD
+5. Tomáš Adamec, 31 let, manažer prodeje v autosalonu, Praha 17, SPD, SPD
+6. Lenka Zumrová, 36 let, poradkyně v oblasti soukromé bezpečnosti, zastupitelka MČ Praha 9, Praha 9, SPD, SPD
+7. MUDr. Klára Cingrošová, 59 let, zastupitelka hl. města Prahy, manažerka klinického hodnocení léčiv, Praha 4, SPD, SPD
+8. Ing. Pavel Frydrych, 49 let, předseda kontrolního výboru ZMČ Praha 15, Praha 15, SPD, SPD
+9. Mgr. Vítězslav Novák, 53 let, realitní makléř, zastupitel MČ Praha 8, Praha 8, SPD, SPD
+10. Ing. Vilém Čáp Ph.D., 36 let, vysokoškolský pedagog, vyšší ministerský rada, Praha 20, NK, BEZPP
+11. Petr Zuska, 58 let, kulturní manažer, choreograf, tanečník, Praha 9, SPD, PRO
+12. Josef Sláma, 49 let, jednatel společnosti, zastupitel MČ Praha 3, Praha 3, SPD, Trikolora
+13. Mgr. Ing. Martin Husa, 52 let, ekonom, právník, Praha-Slivenec, SPD, PŘÍSAHA
+14. Alena Melzerová, 61 let, poradkyně Výboru pro zdravotnictví HMP, zastupitelka MČ Praha 6, Praha 6, SPD, SPD
+15. Róbert Kopček, 59 let, disponent specialista, předseda bytového družstva, Praha 13, SPD, SPD
+16. Michaela Grzegorzová, 49 let, podnikatelka v kartonážním průmyslu, zastupitelka MČ Praha 3, Praha 3, SPD, SPD
+17. Radek Šmídt, 47 let, zastupitel MČ Praha 2, asistent, Praha 2, SPD, SPD
+18. Ing. Pavel Spirov Ph.D., 42 let, geolog, odborný asistent katedry geologie, Praha 5, SPD, SPD
+19. Nataša Hradecká DiS., 70 let, pracovnice v sociálních službách, Praha-Libuš, SPD, PRO
+20. MUDr. Ivan David CSc., 74 let, poslanec Evropského parlamentu, lékař, Praha 2, SPD, SPD
+21. JUDr. Vladimíra Bondarenková D.E.A.,  MBA, 50 let, právnička, zastupitelka MČ Praha 13, Praha 13, SPD, SPD
+22. prof. RNDr. Ivo Budil Ph.D., DSc., 61 let, vysokoškolský pedagog, publicista, antropolog, Praha 4, SPD, PRO
+23. Mgr. Bc. Jana Dvořáková, 74 let, pedagožka, členka Školské rady ZŠ Burešova Praha 8, zastupitelka MČ Praha 8, Praha 8, SPD, SPD
+24. Dominik Václav Hybrant, 40 let, dopravce v silniční motorové dopravě, Praha-Zličín, SPD, SPD
+25. Bc. Olga Tietz, 24 let, asistentka náměstka ministra, studentka, Praha 18, SPD, SPD
+26. Ladislav Štula, 51 let, technik, Praha 11, SPD, SPD
+27. Ing. Zdeněk Trmota, 61 let, profesor na gymnáziu, zastupitel MČ Praha 13, Praha 13, SPD, SPD
+28. Ing. David Jaroš, 52 let, softwarový inženýr se specializací na finance a telekomunikace, Praha 6, SPD, SPD
+29. MUDr. Martin Lukáč, 64 let, ředitel polikliniky Evropská, lékař, zastupitel MČ Praha 6, Praha 6, SPD, Trikolora
+30. David Tesař, 50 let, předseda spolku MANIFEST.CZ, Praha 3, NK, BEZPP
+31. Bc. Jiří Matulík, 50 let, bezpečnostní expert, Praha 13, SPD, PŘÍSAHA
+32. Petr Kopecký, 56 let, projektový manažer, jednatel společnosti, zastupitel MČ Praha 10, Praha 10, SPD, SPD
+33. Mgr. Marcela Vydrová MBA, 64 let, pedagožka, Praha 14, SPD, SPD
+34. Ing. Robert Tietz, 32 let, projektant územního plánování, Praha 12, SPD, SPD
+35. Michaela Zemanová, 57 let, bankovní specialistka, Praha 3, SPD, SPD
+36. Mgr. MgA. Marek Tichý, 58 let, režisér, kameraman, Praha 9, SPD, SPD
+37. Richard Havlík, 57 let, technik pohledávek, fotbalový trenér SK Střešovice 1911, Praha 6, SPD, SPD
+38. Tereza Hálová, 37 let, fakturantka, Praha 9, SPD, SPD
+39. Mgr. Bc. Daniela Kováříková, 38 let, referentka, Praha 8, SPD, SPD
+40. Petr Nachtmann, 51 let, informatik, Praha 20, SPD, SPD
+41. Maxim Omelčak, 38 let, podnikatel ve stavebnictví, Praha 13, SPD, SPD
+42. Rudolf Müller, 44 let, manager, vedoucí provozu autoservisu, Praha 1, SPD, SPD
+43. Mgr. Stanislav Šimek, 64 let, bezpečnostní manažer, zastupitel MČ Praha 10, Praha 10, SPD, SPD
+44. Dagmar Svejkovská, 75 let, odborný referent, Praha-Libuš, SPD, SPD
+45. Marcela Ráchlíková, 64 let, průvodkyně, Praha 12, SPD, SPD
+46. Mgr. Šárka Oharková, 44 let, advokátka, Praha 15, SPD, SPD
+47. Miroslav Dolanský, 49 let, technický manažer, zastupitel MČ Praha 15, Praha 15, SPD, SPD
+48. Petr Copák, 61 let, řidič, Praha-Dolní Chabry, SPD, SPD
+49. Jan Kavrza, 42 let, energetik, Praha 6, SPD, SPD
+50. Ing. MgA. et MgA. Petr Chromčák, 69 let, dirigent, Praha 3, SPD, SPD
+51. Pavel Pecho, 52 let, pracovník v gastronomii, Praha 9, SPD, SPD
+52. Vlasta Matějková, 63 let, referentka, Praha 8, SPD, SPD
+53. Mgr. Šimon Miča M.A., 35 let, středoškolský pedagog, Praha 4, SPD, SPD
+54. Ing. Jaroslav Konečný, 50 let, instruktor sportu, olympionik Atlanta 1996, Praha 10, SPD, SPD
+55. Ivan Galambica, 52 let, spisovatel, zaměstnanec v dopravě, Praha 15, SPD, SPD
+56. Ing. Vladimír Novák, 43 let, manažer v energetice, Praha 15, SPD, SPD
+57. JUDr. Tomáš Chleboun, 53 let, advokát, Praha 4, SPD, SPD
+58. Ing. Tomáš Kulman, 60 let, projektový manažer, Praha 7, SPD, BEZPP
+59. Milan Čmelík, 39 let, ředitel společnosti, Praha 18, SPD, SPD
+60. Jiří Čížek, 62 let, facility manager, Praha 18, SPD, SPD
+61. MUDr. Vlasta Příkaská, 49 let, lékařka, Praha 7, SPD, SPD
+62. Ing. Pavla Boturová, 59 let, účetní, Praha 14, SPD, SPD
+63. Bc. Martin Gebauer, 55 let, manažer prevence kriminality, podnikatel v oblasti projektového řízení a bezpečnosti, Praha 9, SPD, SPD
+64. Klára Kopčeková, 35 let, floristka, Praha 18, SPD, SPD
+65. Mgr. Josef Nerušil, 40 let, poslanec, zastupitel MČ Praha 10, Praha 10, SPD, SPD
+# 11 GEN s podporou veřejnosti
+1. Ing. Roman Mejstřík, 66 let, emeritní radní Prahy 6, galerista, Praha 6, GEN, GEN
+2. Ing. Vojtěch Ryvola, 61 let, radní Prahy 1, pivovarník a restauratér, Praha 1, GEN, GEN
+3. Bc. Libor Vrkoč, 60 let, investiční specialista, Praha 11, GEN, GEN
+4. Ilona Svobodová, 66 let, osobnost divadelní a filmové scény, Praha-Suchdol, GEN, BEZPP
+5. MgA. Petr Čech ArtD., 47 let, emeritní ředitel konzervatoře, varhaník, Praha 1, GEN, BEZPP
+6. Ing. Mgr. Lenka Pavlíková DiS., 51 let, sportovní trenérka a lektorka, pedagožka, Praha 1, GEN, BEZPP
+7. Mgr. Sabrina Petrová M.A., 34 let, členka dozorčí rady, Praha 1, GEN, BEZPP
+8. Ing. Jiří Štyler, 60 let, facility manager, Praha 11, GEN, BEZPP
+9. Ing. Adam Hrubý, 45 let, zakladatel Ústavu důstojného odchodu, Praha 1, GEN, BEZPP
+10. Emma Bruniková, 22 let, studentka pedagogické fakulty, Praha 1, GEN, BEZPP
+11. Marek Milaberský, 52 let, radní MČ Praha 11, Praha 11, GEN, BEZPP
+12. Pavel Hoftych, 59 let, fotbalový trenér a funkcionář, Praha 1, GEN, BEZPP
+13. Mgr. Jaroslav Cepák Ph.D., 54 let, ornitolog a zoolog, Praha 1, GEN, BEZPP
+14. MUDr. Miroslava Chromá, 70 let, všeobecná lékařka, Praha 1, GEN, BEZPP
+15. Ing. Tomáš Junger, 42 let, automotive service manager, Praha 1, GEN, BEZPP
+16. Ing. Zdeněk Hradecký, 62 let, stavební technik, Praha 16, GEN, BEZPP
+17. Ing. Jakub Prikner, 34 let, specialista HW & SW engineering, Praha 6, GEN, BEZPP
+18. Margita Brychtová, 43 let, emeritní radní Prahy 3, vedoucí zdravotnické laboratoře, Praha 3, GEN, BEZPP
+19. Alžběta Lžičařová, 52 let, zdravotní sestra v domově seniorů, Praha 1, GEN, BEZPP
+20. Ing. Petr Dub, 70 let, aktivní senior, Praha 6, GEN, BEZPP
+21. Richard Urbánek, 20 let, vysokoškolský student, Praha 8, GEN, BEZPP
+22. Sylvie Borková, 53 let, vedoucí recepce, Praha 6, GEN, BEZPP
+23. Petr Bělovský, 48 let, výkonný ředitel, Praha-Lysolaje, GEN, BEZPP
+24. Matyáš Mejstřík, 18 let, aktivní student, Praha 6, GEN, BEZPP
+25. Renata Pokorná, 51 let, pracovník v sociálních službách, Praha 6, GEN, BEZPP
+26. Alexandra Borková, 20 let, vysokoškolská studentka, Praha 6, GEN, BEZPP
+27. Miloš Solar, 63 let, zkušený senior, Praha 6, GEN, BEZPP
+28. Magdaléna Bernatová, 23 let, administrativní pracovník, Praha 6, GEN, BEZPP
+29. Tomáš Kuneš, 50 let, IT specialista, Praha 6, GEN, BEZPP
+30. Simona Spilková, 61 let, finanční poradkyně, výtvarnice, Praha 1, GEN, BEZPP
+31. Vladimír Wiesner, 79 let, režisér a kameraman, Praha 1, GEN, BEZPP
+32. Karel Mašín, 40 let, technik reality a facility, Praha 1, GEN, BEZPP
+33. Stanislav Jandík, 67 let, emeritní technický ředitel, Praha 1, NK, BEZPP
+34. Jiří Vondrák, 59 let, restauratér, Praha 1, GEN, BEZPP
+35. Petr Mašek, 60 let, majitel realit, pořadatel kulturních akcí, restauratér, Praha 1, GEN, BEZPP
+36. Jiří Pozděna, 51 let, manažer ve stavebnictví, Praha 6, GEN, BEZPP
+37. Eva Wiesnerová, 79 let, majitelka realit, Praha 1, GEN, BEZPP
+38. Helena Mejstříková, 51 let, administrativní pracovník, Praha 6, GEN, BEZPP
+39. Martin Beneš, 48 let, staropražský hospodský, Praha 1, GEN, BEZPP
+40. Anna Borková, 28 let, administrativní pracovník, Praha 6, GEN, BEZPP
+41. Lidmila Hamanová, 83 let, aktivní seniorka, Praha 6, GEN, BEZPP
+42. Michaela Bělovská, 50 let, realitní makléřka, Praha 1, GEN, BEZPP
+43. Erika Balejová, 62 let, správkyně domácnosti, Praha 6, GEN, BEZPP
+44. Dagmar Wiselková, 68 let, aktivní důchodkyně, Praha 3, GEN, BEZPP
+45. David Černík, 53 let, konzultant startupů, Praha 1, GEN, BEZPP
+46. David Pavlík, 51 let, ředitel obchodního domu, Praha 1, GEN, BEZPP
+47. Jan Ulč, 78 let, konzultant ICT, Praha 1, GEN, BEZPP
+48. Eva Solarová, 63 let, podnikatelka v maloobchodu, Praha 6, GEN, BEZPP
+49. Bc. Veronika Valentová, 51 let, zdravotní sestra ORL, Praha 1, GEN, BEZPP
+50. Filip Mejstřík, 35 let, pracovník v cestovním ruchu, Praha 6, GEN, BEZPP
+51. Jan Lejčko, 34 let, podnikatel v dopravě, Praha 6, GEN, BEZPP
+52. Alberta Kamínová, 66 let, specialistka na finance a účetnictví, Praha 6, GEN, BEZPP
+53. Jaroslav Bernat, 70 let, podnikatel v pohostinství, Praha 6, GEN, BEZPP
+54. Tomáš Klaubenschalk, 40 let, elektro specialista, Praha 11, GEN, BEZPP
+55. Daniel Felgr, 46 let, manager horské chaty, Praha 11, GEN, BEZPP
+56. Jiří Šalanský, 43 let, auditor, manager kvality, Praha 11, GEN, BEZPP
+57. Ing. Kamil Řehák, 59 let, organizátor škol v přírodě a dětských pobytů, Praha 11, GEN, BEZPP
+58. Pavel Klaška, 61 let, specialista v energetice, Praha 6, GEN, BEZPP
+59. Lenka Obrtelová, 48 let, všeobecná sestra na ORL, Praha 4, GEN, BEZPP
+60. Andrea Vrkočová, 54 let, managerka provozu, Praha 11, GEN, BEZPP
+61. Ing. Martin Král, 49 let, developer a stavitel, Praha 1, GEN, BEZPP
+62. Stella Legdan, 20 let, studentka vysoké školy, Praha 18, GEN, BEZPP
+63. Lucie Kornerová, 37 let, provozovatelka salonu zdraví a krásy, Praha 2, GEN, BEZPP
+64. Anna Mašková, 67 let, angažovaná seniorka, Praha 3, GEN, BEZPP
+65. Eva Dubová, 77 let, aktivní seniorka, Praha 6, GEN, BEZPP
+# 12 SPOLU pro Prahu
+1. Mgr. Tomáš Portlík, 48 let, starosta MČ Praha 9, Praha 9, ODS, ODS
+2. Bc. Michal Hroza, 50 let, náměstek primátora hlavního města Prahy, hudebník, Praha 4, TOP 09, TOP 09
+3. Ing. Alexandra Udženija, 50 let, náměstkyně primátora hlavního města Prahy, Praha 2, ODS, ODS
+4. Mgr. Karel Hanzlík, 60 let, starosta MČ Praha 16 (Radotín), Praha 16, ODS, ODS
+5. Jiří Ptáček, 47 let, radní pro životní prostředí MČ Praha 3, podnikatel, Praha 3, TOP 09, TOP 09
+6. Ing. Ondřej Kubín MBA, 44 let, starosta MČ Praha 4, Praha 4, ODS, ODS
+7. Ing. David Vodrážka, 55 let, starosta MČ Praha 13, Praha 13, ODS, ODS
+8. Mgr. Jan Chabr, 38 let, zastupitel hlavního města Prahy, zastupitel MČ Praha 6, manažer a analytik v energetice, Praha 6, TOP 09, TOP 09
+9. MUDr. Tomáš Kaštovský MBA, 50 let, praktický lékař, Praha 7, ODS, ODS
+10. Ing. Tomáš Slabihoudek, 48 let, radní hlavního města Prahy, zastupitel MČ Praha 8, Praha 8, TOP 09, TOP 09
+11. Mgr. Jakub Stárek, 44 let, starosta MČ Praha 6, Praha 6, ODS, ODS
+12. Ing. Martin Sedeke, 60 let, starosta MČ Praha 11, Praha 11, ODS, ODS
+13. Mgr. Jakub Lepš M.A., 52 let, amerikanista, VŠ pedagog, zastupitel, Praha 11, TOP 09, TOP 09
+14. Ondřej Gros, 51 let, starosta MČ Praha 8, Praha 8, ODS, ODS
+15. Ing. arch. Martin Valovič, 62 let, starosta MČ Praha 10, Praha 10, ODS, ODS
+16. Ing. Ondřej Martan, 44 let, starosta MČ Praha - Běchovice, Praha-Běchovice, ODS, ODS
+17. Ing. Tomáš Pek, 62 let, 1. místostarosta MČ Praha 10, Praha 10, TOP 09, TOP 09
+18. Lucie Kubesa MBA, 47 let, zastupitelka hlavního města Prahy, Praha 15, ODS, ODS
+19. JUDr. Jana Nowaková Těmínová, 62 let, 1. místostarostka MČ Praha 9, advokátka, Praha 9, TOP 09, TOP 09
+20. Vojtěch Mikoláš, 34 let, místostarosta MČ Praha 12, Praha 12, ODS, ODS
+21. Mgr. Michal Vronský, 48 let, starosta MČ Praha 3, Praha 3, TOP 09, TOP 09
+22. Jiří Zajac, 49 let, starosta MČ Praha 14, Praha 14, ODS, ODS
+23. Ing. Vojtěch Kos MBA, 54 let, starosta MČ Praha 12, ekonom, Praha 12, ODS, ODS
+24. Mgr. Albert Kubišta, 50 let, historik, Praha 3, TOP 09, TOP 09
+25. Ing. Michal Papež, 42 let, vedoucí provozu Zoo Praha, Praha 3, ODS, ODS
+26. Mgr. Alena Kopejtková, 41 let, starostka MČ Praha 17 (Řepy), Praha 17, ODS, ODS
+27. Mgr. Petr Měšťan, 47 let, starosta MČ Praha 20 (Horní Počernice), učitel ZŠ, Praha 20, ODS, ODS
+28. doc. Ing. Petr Praus CSc., 66 let, vysokoškolský pedagog, Praha 13, TOP 09, TOP 09
+29. Ing. Jan Ladin, 47 let, tajemník FIT ČVUT, systémový inženýr, učitel, Praha 7, TOP 09, TOP 09
+30. Ing. Jiří Vintiška, 50 let, starosta MČ Praha - Čakovice, Praha-Čakovice, ODS, ODS
+31. Ing. Pavlína Petrásová, 52 let, zastupující vedoucí oddělení ÚMČ, Praha 1, ODS, ODS
+32. JUDr. Matěj Brožek, 28 let, advokátní koncipient, Praha 2, ODS, ODS
+33. Zbyněk Richter, 81 let, starosta MČ Praha - Dolní Počernice, Praha-Dolní Počernice, ODS, ODS
+34. Ing. Jan Kavalírek, 34 let, manažer v oblasti digitálních technologií a umělé inteligence, Praha 5, TOP 09, TOP 09
+35. Jan Korseska, 65 let, starosta MČ Praha 2, Praha 2, ODS, ODS
+36. Petr Šula, 52 let, 1. místostarosta MČ Praha 12, Praha 12, TOP 09, TOP 09
+37. JUDr. Ivana Kotýnková, 67 let, malířka, Praha 10, ODS, Soukromníci
+38. Jaroslav Tošil, 63 let, starosta MČ Praha - Dubeč, Praha-Dubeč, ODS, ODS
+39. Bc. Šárka Exnarová, 24 let, studentka veřejné a sociální politiky, Praha 6, TOP 09, TOP 09
+40. Ing. Lucie Pechová, 45 let, místostarostka MČ Praha 2, Praha 2, ODS, ODS
+41. Mikuláš Pobuda, 31 let, radní pro dopravu, IT a Smartcities MČ Praha 10, Praha 10, ODS, ODS
+42. Ing. Petr Neumann, 69 let, místostarosta MČ Praha 15, Praha 15, TOP 09, TOP 09
+43. Milan Antoš, 56 let, živnostník, hokejový expert ČT, Praha-Vinoř, ODS, ODS
+44. Ing. Tomáš Halva, 30 let, radní pro dopravu MČ Praha 2, Praha 2, TOP 09, TOP 09
+45. Mgr. Jan Recman, 45 let, místostarosta MČ Praha 2, Praha 2, ODS, ODS
+46. Ing. Michal Hazdra, 52 let, starosta MČ Praha 21 (Újezd nad Lesy), Praha 21, ODS, ODS
+47. Bc. Radek Lojda, 46 let, místostarosta MČ Praha 10, předseda bytového družstva, Praha 10, TOP 09, TOP 09
+48. Mgr. Daniel Neumann, 33 let, advokát, Praha-Petrovice, ODS, ODS
+49. MUDr. Libor Zámečník Ph.D., FEBU, FECSM, MBA, 56 let, lékař, primář kliniky, Praha 2, ODS, ODS
+50. Petra Sedláčková, 51 let, projektová manažerka v IT, zastupitelka MČ Praha 3, Praha 3, TOP 09, TOP 09
+51. Robert Kučera, 57 let, živnostník, automechanik, Praha 21, ODS, Soukromníci
+52. Vojtěch Bíba, 26 let, student právnické fakulty, Praha 2, ODS, ODS
+53. Filip Vácha, 48 let, místostarosta MČ Praha 4, stratég energetické infrastruktury, Praha 4, TOP 09, TOP 09
+54. Mgr. A. Jiří Jindřich, 53 let, starosta MČ Praha - Dolní Měcholupy, Praha-Dolní Měcholupy, ODS, ODS
+55. JUDr. Robert Pecka LL.M., 35 let, radní MČ Praha 3 pro majetek, investice, energetiku a městské společnosti, Praha 3, TOP 09, TOP 09
+56. Ondřej Nováček, 40 let, radní pro dopravu MČ Praha 11, Praha 11, ODS, ODS
+57. Ing. Ondřej Holas DiS., 37 let, hudební manažer, Praha 2, ODS, ODS
+58. David Roznětinský, 59 let, starosta MČ Praha - Řeporyje, Praha-Řeporyje, TOP 09, TOP 09
+59. Ing. Václav Kožený Ph.D., MBA, 49 let, místostarosta MČ Praha 6, Praha 6, ODS, ODS
+60. JUDr. Pavel Šutka, 36 let, místostarosta MČ Praha 10, advokát, Praha 10, ODS, ODS
+61. Pavlína Lacková, 51 let, systémový analytik, Praha 7, ODS, ODS
+62. MUDr. Michal Mašek, 58 let, lékař - stomatolog, Praha 9, TOP 09, TOP 09
+63. Mgr. Martina Postupová, 48 let, místostarostka MČ Praha - Ďáblice, právnička, Praha-Ďáblice, ODS, ODS
+64. JUDr. Mgr. Jan Machala, 33 let, firemní právník, historik, zahrádkář, Praha 13, ODS, ODS
+65. Jan Navrátil, 40 let, technický manažer, Praha 11, ODS, ODS
+# 13 Levice
+1. Mgr. Pavel Čižinský, 49 let, advokát, Praha 1, Levice, Levice
+2. Markéta Juřicová, 26 let, studentka, Praha 3, Levice, Levice
+3. Mgr. Jan Májíček, 42 let, projektový koordinátor, Praha 7, Levice, Levice
+4. Alžběta Bláhová, 27 let, učitelka, Praha 2, Levice, Levice
+5. Filip Outrata, 51 let, redaktor, historik, teolog, Praha 4, Levice, BEZPP
+6. Elena Terberg Tulupova, 50 let, VŠ učitel, Praha 5, Levice, BEZPP
+7. Patrik Eichler, 42 let, novinář, Praha 2, Levice, BEZPP
+8. MgA. Hana Polanská Ph.D., 45 let, tanečnice a výzkumnice, Praha 2, Levice, Levice
+9. Hana Árvay, 19 let, IT pracovnice, Praha 8, Levice, BEZPP
+10. Kateřina Gajdošová, 47 let, ministerská radová, Praha 5, Levice, BEZPP
+11. MUDr. Matěj Červenka, 38 let, lékař, Praha 2, Levice, BEZPP
+12. Mgr. Martin Churaň, 46 let, knihovník, Praha 3, Levice, Levice
+13. Mgr. Rostislav Isaac Syrský, 64 let, tlumočník-překladatel, Praha 3, Levice, BEZPP
+14. Alexandra Gerasimčiková, 34 let, projektová koordinátorka, Praha-Ďáblice, Levice, BEZPP
+15. Valerie Clare Talacková, 58 let, překladatelka, Praha 1, Levice, Levice
+16. Štěpán Mareš, 23 let, student, Praha 13, Levice, BEZPP
+17. Hynek Tožička, 22 let, knihovník, Praha 4, Levice, Levice
+18. Mgr. et Mgr. Anežka Polášková, 43 let, odborný referent, Praha 4, Levice, BEZPP
+19. Karel Novák, 61 let, sociální pracovník, Praha 6, Levice, Levice
+20. Tomáš Kanclíř, 21 let, student, Praha 11, Levice, BEZPP
+21. Ingrid Puskajlerová, 41 let, sociální pracovnice, Praha 4, Levice, BEZPP
+22. prof. RNDr. Jiří Hudeček CSc., 72 let, VŠ učitel, Praha 15, Levice, Levice
+23. David Pavlorek, 38 let, expert na zahraniční vzdělávací systémy, Praha 5, Levice, BEZPP
+24. Mgr. Roman Janouch, 53 let, pedagog, novinář, Praha 8, Levice, BEZPP
+25. Svatopluk Nevrkla, 45 let, informatik, Praha 9, Levice, BEZPP
+26. Michal Šimůnek, 48 let, laborant, Praha 15, Levice, BEZPP
+27. Petr Pávek, 37 let, prodavač, Praha 4, Levice, Levice
+28. Rebeka Lánská, 25 let, studentka, Praha-Slivenec, Levice, BEZPP
+29. Matěj Marek, 21 let, student, Praha-Dolní Chabry, Levice, BEZPP
+30. Ing. Issam El Faraj, 60 let, ekonom, Praha 14, Levice, BEZPP
+31. Martin Šaffek, 53 let, knihovník, Praha 2, Levice, Levice
+32. Jan Adamec, 37 let, doktorand filosofie, Praha 8, Levice, BEZPP
+33. Roman Petrůj, 54 let, sanitář, Praha 20, Levice, BEZPP
+34. Mgr. Mohamed Kayed, 61 let, podnikatel, Praha 9, Levice, BEZPP
+35. David Patras, 32 let, učitel, Praha 10, Levice, Levice
+36. Pavel Kalina, 21 let, student, Praha 8, Levice, BEZPP
+37. Bogdan Ševčenko, 22 let, instalatér, Praha 4, Levice, BEZPP
+38. David Miler, 52 let, zdravotník, Praha 6, Levice, BEZPP
+39. Ing. Viera Hudečková, 74 let, ekonom v důchodu, Praha 15, Levice, Levice
+40. Jonáš Rail, 18 let, student, Praha 1, Levice, BEZPP
+41. Radek Zvánovec, 53 let, technický analytik, Praha 8, Levice, BEZPP
+42. Šoša Elšíková, 20 let, studentka, Praha 3, Levice, BEZPP
+43. Roman Sikora, 56 let, dramatik, cukrář, Praha 6, Levice, BEZPP
+44. Rostislav Tožička, 30 let, technická podpora, Praha 2, Levice, BEZPP
+45. Marie Podlahová Bořkovcová, 49 let, sociální pracovnice, Praha 3, Levice, BEZPP
+46. Bassel Abou Nadi, 49 let, obchodník, Praha 3, Levice, BEZPP
+47. Pavla Dedeciusová, 55 let, knihovnice, Praha 7, Levice, BEZPP
+48. Jiří Málek, 76 let, důchodce, Praha 8, Levice, BEZPP
+49. Johana Pastorová, 24 let, bubenice, Praha 2, Levice, BEZPP
+50. David Sladký, 43 let, invalidní důchodce, Praha 6, Levice, BEZPP
+# 14 Motoristé sobě
+1. Mgr. Klára Sovová, 60 let, advokátka, podnikatelka v oblasti horského cestovního ruchu, spolumajitelka Luční a Labské boudy, Praha 6, AUTO, AUTO
+2. Adam Paclt, 42 let, místopředseda Rady vlády pro informační společnost, zakladatel společnosti IceWarp, Praha 4, AUTO, AUTO
+3. Ing. Mojmír Mikuláš, 58 let, zastupitel Prahy 3, vedoucí odd. podpory sportu kabinetu ministra pro sport, prevenci a zdraví, předseda spolku Jedeme AUTEM, předseda SVJ, člen Kontrolního výboru a Výboru pro územní rozvoj Prahy 3, Praha 3, AUTO, AUTO
+4. MUDr. Marek Zeman MBA, 62 let, zastupitel Prahy 3, lékař, primář zdravotního zařízení, člen Správní rady VZP, bývalý ředitel Fakultní nemocnice Královské Vinohrady, Praha 3, AUTO, AUTO
+5. Jan Pavluv, 60 let, podnikatel v automobilovém průmyslu, Praha 8, AUTO, AUTO
+6. Mgr. Ondřej Máchal, 45 let, náměstek ministra vnitra, odborník na bezpečnost, Praha 6, AUTO, AUTO
+7. Bc. Renata Maršíková, 43 let, konzultantka v oblasti realit, místopředsedkyně strany Motoristé sobě, Praha-Libuš, AUTO, AUTO
+8. Ing. Jan Sechter, 58 let, náměstek ministra průmyslu a obchodu, kariérní diplomat, bývalý velvyslanec České republiky v Polsku a Rakousku, Praha 1, AUTO, BEZPP
+9. Jakub Němec MBA, 51 let, zastupitel Prahy 12, odborník na firem. management a komunikaci, podnikatel ve film. prům. a cest. ruchu, člen Kontr. výboru, předseda Komise pro soc. věci, komunit. plánování a bezpečnost MČ Praha 12, Praha 12, AUTO, AUTO
+10. Karel Borůvka MBA, 28 let, státní zaměstnanec, Praha 5, AUTO, AUTO
+11. Ladislav Hlava, 44 let, podnikatel v oblasti gastronomického a hotelového poradenství, Praha 18, AUTO, AUTO
+12. Ing. Vladimír Matějovský, 66 let, stavební inženýr, Praha 6, AUTO, AUTO
+13. Ing. Radovan Chodura, 52 let, podnikatel v oblasti vývoje softwaru, Praha-Petrovice, AUTO, AUTO
+14. Mgr. Petr Macinka, 48 let, místopředseda vlády a ministr zahraničních věcí, předseda strany Motoristé sobě, Praha 5, AUTO, AUTO
+15. MUDr. Boris Šťastný MBA, LL.M., 56 let, lékař, ministr pro sport, prevenci a zdraví, předseda Poslaneckého klubu Motoristé sobě, zakladatel největší sítě domovů pečujících o seniory a osoby s Alzheimerovou chorobou v České republice, Praha 10, AUTO, AUTO
+16. Michal Vystrčko PFP, 38 let, podnikatel v oblasti finančního plánování, Praha 20, AUTO, AUTO
+17. Bc. Michelle Kushnir, 26 let, výzkumná a vývojová pracovnice, Praha 7, AUTO, AUTO
+18. JUDr. Petr Holý, 50 let, advokát a patentový zástupce, Praha 18, AUTO, AUTO
+19. Mgr. Barbora Lužíková, 41 let, podnikatelka v oblasti předškolního vzdělávání, Přišimasy, AUTO, AUTO
+20. Mgr. Jiří Barták, 59 let, pedagog, místopředseda Poslanecké sněmovny Parlamentu České republiky, Praha 4, AUTO, AUTO
+21. Bc. Matěj Vlášek, 24 let, student vysoké školy obor ekonomie, člen Komise pro vedlejší hospodářskou činnost MČ Praha 3, Praha 3, AUTO, AUTO
+22. Michal Tůma, 59 let, generální ředitel golfového resortu, Praha 1, AUTO, AUTO
+23. Petr Valoušek, 41 let, jednatel poradenské společnosti ve zdravotnictví, Praha 8, AUTO, AUTO
+24. JUDr. Antonín Hedrlín Ph.D., 57 let, právník se zaměřením na autorské právo, Praha 12, AUTO, BEZPP
+25. Robert Izák MBA, 62 let, dopravní konzultant, Praha 5, AUTO, AUTO
+26. Jiří Rajman, 56 let, elektrotechnik, Praha 13, AUTO, AUTO
+27. Gabriela Sedláčková, 41 let, poslankyně Parlamentu ČR, manažerka a členka Kulturní komise Rady městské části Praha 3, Praha 3, AUTO, BEZPP
+28. Stanislav Horák, 79 let, správce nemovitostí, Praha 1, AUTO, AUTO
+29. Michal Jakubec, 28 let, specialista na nezávislou kontrolu a prověřování ojetých vozů, Praha 13, AUTO, AUTO
+30. David Frankošvili, 24 let, projektant, Praha 7, AUTO, AUTO
+31. Vlastimil Novák, 71 let, podnikatel v oblasti tepelné techniky, Praha 10, AUTO, AUTO
+32. Jaroslav Janovský, 48 let, strojvedoucí, Praha 8, AUTO, AUTO
+33. Jan Kaljković, 40 let, podnikatel ve stavebnictví, Praha 17, AUTO, AUTO
+34. Petr Berkovič, 59 let, strojní mechanik, Praha 4, AUTO, AUTO
+35. Mgr. Eva Chodurová, 51 let, právní specialistka, Praha-Petrovice, AUTO, AUTO
+36. Ondřej Pilát, 20 let, student cestovního ruchu, Praha 12, AUTO, AUTO
+37. Jiří Vogel, 73 let, podnikatel v automobilovém průmyslu, Praha 8, AUTO, AUTO
+38. Matěj Chrudina, 34 let, filmový tvůrce, Praha 6, AUTO, AUTO
+39. Roman Kopačka, 46 let, podnikatel v cestovním ruchu, Praha 1, AUTO, AUTO
+40. Valeria Belousova, 25 let, zubní instrumentářka, Praha 8, AUTO, AUTO
+41. Oldřich Silný, 60 let, obchodní zástupce, Praha 14, AUTO, AUTO
+42. Petr Rajchl, 56 let, malíř, lakýrník, Praha 10, AUTO, BEZPP
+43. Jan Panuška, 44 let, projektant v energetice a petrochemii, Praha 12, AUTO, AUTO
+44. Markéta Čechová DiS., 56 let, lektorka zdravotního tělocviku, provozovatelka centra tibetské medicíny, Praha 13, AUTO, AUTO
+45. Petra Červeňáková, 46 let, finanční poradkyně, Praha 10, AUTO, BEZPP
+46. Mgr. Filip Tomíček, 35 let, pedagog, Praha 8, AUTO, AUTO
+47. Marcela Rajchlová, 56 let, truhlářka, recepční v Křesťanském domově mládeže, Praha 10, AUTO, BEZPP
+48. Jan Dvořáček, 50 let, analytik, Praha 15, AUTO, AUTO
+49. Ing. Jan Zámečník, 44 let, softwarový architekt, Praha 10, AUTO, AUTO
+50. František Jan Dungl, 19 let, student Národohospodářské fakulty Vysoké školy ekonomické v Praze, Praha 4, AUTO, BEZPP
+51. Bc. Martina Těšínská, 53 let, optometristka, Praha 13, AUTO, AUTO
+52. Vladimír Pluháček, 45 let, IT analytik, koordinátor projektů v sociálních službách, člen jednotky dobrovolných hasičů, záchranář, člen IT komise, Praha 12, AUTO, BEZPP
+53. Kristýna Bačíková, 18 let, studentka produkce a managementu, Praha-Libuš, AUTO, BEZPP
+54. Ondřej Sklenář, 18 let, student obchodní akademie, Praha 5, AUTO, BEZPP
+55. Jindra Havlanová, 59 let, vedoucí jídelny, Praha 4, AUTO, BEZPP
+56. Petr Hartmann, 30 let, senior konstruktér elektro, Praha 13, AUTO, AUTO
+57. Karen Podskalská, 19 let, studentka scénické a výstavní tvorby, Praha 6, AUTO, BEZPP
+58. Bc. Veronika Horčičková, 45 let, referentka, specialistka na management cestovního ruchu, aktivní golfistka, Praha 12, AUTO, AUTO
+59. Anna-Maria Jelínková, 21 let, vedoucí pracovnice v pekárenském provozu, Praha-Újezd, AUTO, BEZPP
+60. Daniel Rajchl, 24 let, sous chef, Praha 10, AUTO, AUTO
+61. Ing. Jana Schneiderová, 64 let, stavební inženýrka, Praha 6, AUTO, AUTO
+62. Mgr. Martin Žemlička MBA, 40 let, pedagog na gymnáziu, Praha 9, AUTO, BEZPP
+63. Tomáš Komárek, 55 let, automechanik, Praha 8, AUTO, AUTO
+64. Jiří Bešťák, 39 let, zástupce ředitele autopůjčovny, Praha-Suchdol, AUTO, AUTO
+65. Izabela Zemanová, 20 let, studentka ekonomie, Praha 3, AUTO, AUTO
+# 15 Svobodní
+1. Bc. Bedřich Laube, 57 let, zastupitel Praha 9, manažer v automobilovém průmyslu a dopravě, Praha 9, Svobodní, Svobodní
+2. Libuše Crhová, 62 let, obchodní zástupce, Praha 3, Svobodní, Svobodní
+3. Adriana Čipižáková, 48 let, zdravotní sestra, pedagog, Praha 4, Svobodní, Svobodní
+4. Ing. Martin Halama, 52 let, zastupitel a radní MČ Praha 18, Praha 18, Svobodní, Svobodní
+5. Ing. Jan Konopásek, 62 let, IT/AV specialista, zastupitel a radní MČ Praha 22, hudebník, Praha 22, Svobodní, Svobodní
+6. Jan Dočekal, 62 let, manager v autoprůmyslu, Praha 6, Svobodní, Svobodní
+7. Michal Geberle, 48 let, jednatel servisní společnosti, Praha 11, Svobodní, Svobodní
+8. Svatopluk Baďura, 67 let, podnikatel v auto-moto službách, Praha 5, Svobodní, Svobodní
+9. Ivo Solnař, 47 let, podnikatel v polygrafii, Praha 2, Svobodní, Svobodní
+10. Václav Suk, 63 let, OSVČ - služby, Praha 1, Svobodní, Svobodní
+11. Ing. Radek Jaroš, 67 let, vysokoškolský pedagog, Praha 8, Svobodní, Svobodní
+12. Ing. Ondřej Vašíček, 43 let, manažer, Praha 4, Svobodní, Svobodní
+13. Jaroslav Douša, 61 let, prodavač elektro, Praha 20, Svobodní, Svobodní
+14. Bc. Filip Rouček, 51 let, správce nemovitostí, Praha 6, Svobodní, Svobodní
+15. Tomáš Rout, 49 let, revizní technik plynových zařízení, Praha 18, Svobodní, Svobodní
+16. Ing. Bronislav Sedláček, 60 let, učitel ZŠ, Praha 4, Svobodní, BEZPP
+17. RNDr. Martin Vaculík, 61 let, úvěrový specialista, Praha 10, Svobodní, Svobodní
+18. Karolína Konopásková, 50 let, referentka dopravních agend, manažerka pohledávek, Praha 22, Svobodní, Svobodní
+19. Bc. Blanka Suchá, 63 let, staniční sestra, Praha 9, Svobodní, BEZPP
+20. Bc. Josef Vokál, 66 let, realizátor zelených střech, Praha 8, Svobodní, BEZPP
+21. Daniel Šelepa, 20 let, student, Praha 9, Svobodní, Svobodní
+22. Lucie Fridrichová, 53 let, zdravotní sestra, Praha 4, Svobodní, Svobodní
+23. Mgr. Pavla Adlerová, 54 let, referentka správních agend, Praha 5, Svobodní, BEZPP
+24. František Kučera, 50 let, OSVČ - instalace a servis klimatizací, Praha 10, Svobodní, BEZPP
+25. Robert Rosenberg, 51 let, trenér, Praha-Zbraslav, Svobodní, BEZPP
+26. Vratislav Čihák, 69 let, IT specialista, Praha 4, Svobodní, Svobodní
+27. Martin Čipižák, 57 let, technik telekomunikací, Praha 4, Svobodní, BEZPP
+28. Radek Sláma, 36 let, hlavní technik servisní firmy, Praha 11, Svobodní, BEZPP
+29. Radovan Koutský, 68 let, penzista, člen Rady MČ Praha 22 v letech 2018 - 2022, Praha 22, Svobodní, Svobodní
+30. Ing. Pavel Straka, 61 let, metrolog, Praha 9, Svobodní, Svobodní
+31. Lucie Janigová, 44 let, referentka dopravních agend, Praha 15, Svobodní, Svobodní
+32. Petr Nouzák, 44 let, živnostník, hudebník, Praha 22, Svobodní, Svobodní
+33. Mgr. Bc. Pavel Kosař LL.M., 64 let, podnikatel a pedagog, Praha 22, Svobodní, BEZPP
+34. Mgr. Marie Bican Kratochvílová, 44 let, psycholožka, Praha 4, Svobodní, BEZPP
+35. Valentina Dubšíková, 63 let, zdravotní sestra, Praha 3, Svobodní, BEZPP
+36. Mgr. Tomáš Urban, 48 let, právník, Praha 9, Svobodní, BEZPP
+37. Miroslav Dražil, 59 let, podnikatel v energetice, Praha 5, Svobodní, BEZPP
+38. Marcela Dlasková, 80 let, důchodce, dětská chůva, Praha 4, Svobodní, BEZPP
+39. Petr Kvěch, 66 let, OSVČ – finance, Praha 4, Svobodní, BEZPP
+40. Michal Augusta, 46 let, referent, Praha 17, Svobodní, BEZPP
+41. Ing. Jaromír Smetana, 67 let, investiční poradce, Praha 6, Svobodní, BEZPP
+42. Věra Faltynková, 71 let, prodavačka, Praha 4, Svobodní, BEZPP
+43. David Novotný, 47 let, kuchař, Praha 4, Svobodní, BEZPP
+44. Josef Hrůza, 36 let, IT vývojář, Praha 4, Svobodní, BEZPP
+45. Martin Bican, 42 let, vzduchotechnik, Praha 4, Svobodní, BEZPP
+46. Petr Hubinger, 48 let, IT administrátor, Praha 4, Svobodní, BEZPP
+47. Mgr. Samíra Kerbouová Dungey, 55 let, učitelka ZŠ, Praha 5, Svobodní, BEZPP
+48. Igor Pechal, 49 let, pekař Koláček, Praha-Libuš, Svobodní, BEZPP
+49. Ing. Ondřej Stárek, 48 let, softwarový vývojář, Praha 6, Svobodní, BEZPP
+50. Jana Smoláková, 46 let, manager prodeje, Praha 4, Svobodní, BEZPP
+51. Markéta Ernestová, 56 let, analytik provozu a úhrad, Praha 11, Svobodní, Svobodní
+52. Adéla Netolická, 21 let, zahradnice arboristka, Praha 6, Svobodní, BEZPP
+53. Zdeněk Kostka, 49 let, specializovaný technik, Praha 11, Svobodní, BEZPP
+54. Mgr. Jaroslava Semíková, 81 let, středoškolský pedagog v důchodu, Praha 9, Svobodní, BEZPP
+55. Veronika Zvěřinová, 38 let, servírka, Praha-Zbraslav, Svobodní, BEZPP
+56. Stanislava Zdeňková, 69 let, grafička, redaktorka, Praha 4, Svobodní, BEZPP
+57. Silvia Stanková, 57 let, barmanka, Praha 4, Svobodní, BEZPP
+58. Martin Borovička, 56 let, kuchař, Praha 4, Svobodní, BEZPP
+59. Eva Urbanová, 76 let, mzdová účetní, Praha 4, Svobodní, BEZPP
+60. Olga Síbrtová, 62 let, živnostník, Praha 22, Svobodní, Svobodní
+61. Tomáš Juritka, 67 let, řidič kamiónu v důchodu, Praha 5, Svobodní, BEZPP
+62. Michaela Mužíková, 49 let, v domácnosti, Praha 4, Svobodní, BEZPP
+63. Anita Ferretto, 32 let, výčepní, Praha 4, Svobodní, BEZPP
+64. Dana Stančíková, 59 let, OSVČ, účetní, Praha 4, Svobodní, Svobodní
+65. Ing. Luboš Boleček, 37 let, AI analytik zdravotnictví – Clinexus.cz, Praha 1, Svobodní, Svobodní
+# 16 JSME PRAHA
+1. Ing. Jana Komrsková, 48 let, náměstkyně pražského primátora pro životní prostředí, zastupitelka a bývalá 1. místostarostka Prahy 10, zastánkyně transparentního hospodaření bez vlivu kmotrů, Praha 10, NK, BEZPP
+2. Ing. Jan Štern, 73 let, producent, publicista, zakladatel Občanského fóra, bojovník za nezávislá veřejnoprávní média, Praha 4, TEAM, TEAM
+3. Mgr. Ondřej Chrást, 46 let, zastupitel Prahy 6, manažer v kultuře a vzdělávání, bývalý náměstek ministra kultury, iniciátor projektu zachrantevily.cz, Praha 6, TEAM, TEAM
+4. Ing. Eva Tichá, 64 let, zastupitelka Prahy 6, ekonomka, dobrovolnice, zakladatelka iniciativy Praha 6 neplastuje, Praha 6, TEAM, TEAM
+5. Ing. Petr Beneš, 42 let, zastupitel a bývalý místostarosta Prahy 10 pro majetek, spoluzakladatel spolku Veřejnost proti korupci, systémový inženýr a protikorupční analytik, Praha 10, TEAM, TEAM
+6. Robert Veverka, 49 let, zastupitel MČ Praha 2, publicista, podnikatel, Praha 2, TEAM, BEZPP
+7. Adam Le Hanka MSc., 37 let, odborník na umělou inteligenci, spolupředseda Volt Česko, Praha 6, TEAM, Volt
+8. Mgr. Martin Úlovec, 40 let, expert a konzultant pro digitální vzdělávání a digitalizaci, Praha 13, NK, BEZPP
+9. Mgr. Michal Kočí, 49 let, zastupitel a bývalý radní Prahy 10 pro sociální oblast a bezpečnost, skaut, dlouhodobý dárce krevních destiček, Praha 10, TEAM, TEAM
+10. Mgr. Olga Vlčková Ph.D., 50 let, projektová manažerka, teatroložka, bývalá vedoucí Centra Romů a Sintů v Praze, Praha 6, NK, BEZPP
+11. MgA. Jiří Vrba, 54 let, sportovní komentátor, místopředseda Pražského fotbalového svazu, Praha 22, NK, BEZPP
+12. Kateřina Šrámková, 30 let, specialistka na poporodní péči, spolupředsedkyně Volt Česko, Praha 3, TEAM, Volt
+13. MgA. Libuše Rudinská, 52 let, režisérka a producentka dokumentárních filmů, Praha 9, NK, BEZPP
+14. Mgr. Ladislav Novák MBA, 64 let, poradce v oblasti bezpečnosti, Praha 7, NK, BEZPP
+15. Mgr. Pavel Franc, 47 let, profesionál v oblasti IT a produktového řízení, zastupitel na Praze 8, Praha 8, TEAM, Volt
+16. Mgr. Michaela Hovorková, 47 let, programová manažerka HBO, Praha 18, NK, BEZPP
+17. Mgr. Tomáš Čada, 41 let, zastupitel MČ Praha 2, básník a učitel, Praha 2, NK, BEZPP
+18. Jaroslav Němec, 48 let, zastupitel MČ Praha 2, výtvarník a kurátor, Praha 2, NK, BEZPP
+19. Mgr. Štěpán Žežula, 60 let, psychoterapeutický poradce, zakladatel Spolku pro obnovu Dejvického potoka, Praha 6, NK, BEZPP
+20. Ing. Matěj Juřík, 37 let, ředitel firemního energetického poradenství, Praha 6, TEAM, Generace
+21. Ing. Jan Hrubeš DiS., 31 let, učitel, dirigent, hráč na kontrabas, expert na vzdělávání, Praha 6, NK, BEZPP
+22. Ing. Filip Mikšů, 32 let, inženýr stavby vysokorychlostní železniční tratě, člen Komise sociální RMČ Praha - Petrovice, Praha-Petrovice, NK, BEZPP
+23. Karolína Hejduková, 50 let, podnikatelka, Praha 2, NK, BEZPP
+24. PhDr. Josef Břečka, 72 let, malešický patriot, historik, ekolog a etnolog snažící se o oživení Malešického statku, propagátor Muzea periferie, Praha 10, NK, BEZPP
+25. Ing. Anežka Kosmáková Janatová Ph.D., 41 let, pedagožka na VŠ, bioložka, Praha 2, NK, BEZPP
+26. Karolína Ouzká, 18 let, studentka, Praha 11, TEAM, Volt
+27. MUDr. Pavel Kubů, 51 let, lékař, výzkumník, Praha 10, NK, BEZPP
+28. Mgr. Bc. Vojtěch Novotný, 46 let, rozpočtář a rugbista, Praha 6, NK, BEZPP
+29. Bc. Kateřina Němcová, 45 let, asistentka v galerii, Praha 2, NK, BEZPP
+30. Ing. Joachim Leo E Boonaert, 38 let, IT odborník, Praha 13, TEAM, Volt
+31. Mgr. et Mgr. Barbora Abu Dayeh, 35 let, právnička a datová analytička, Praha 10, NK, BEZPP
+32. Rudolf Stein, 74 let, pracující důchodce, Praha 6, NK, BEZPP
+33. Štěpánka Rohanová, 47 let, dispečerka, Praha 2, NK, BEZPP
+34. Bc. Erika Hasmuková, 37 let, polygrafka, členka petičního výboru proti prodeji městského pozemku na Bohdalci, Praha 10, NK, BEZPP
+35. MUDr. Jiřina Fojtů, 60 let, lékařka - internistka, Praha 6, NK, BEZPP
+36. Jiřina Sedláčková, 73 let, účetní, daňový poradce, Praha 6, NK, BEZPP
+37. Ing. Nikola Hrnčír, 54 let, IT specialistka, Praha 1, TEAM, Volt
+38. Bc. et Bc. Markéta Žilinová, 41 let, politoložka, členka petičního výboru proti prodeji městského pozemku na Bohdalci, Praha 10, NK, BEZPP
+39. Ing. Lenka Palatová, 59 let, systémová inženýrka v ekonomice, Praha 6, NK, BEZPP
+40. Anna Waters, 44 let, ekonomka, Praha 6, NK, BEZPP
+41. Ing. Michal Mervart Ph.D., 48 let, vysokoškolský pedagog, Praha 10, NK, BEZPP
+42. Alena Frydrychová, 60 let, podolog, Praha 6, NK, BEZPP
+43. Karolína Salomonová LL.M., 34 let, šéfka vzdělávacího centra a tvůrkyně místa, kde děti objevují a rozvíjejí svůj talent, Praha 3, TEAM, Volt
+44. Ing. Jaromír Zika, 55 let, dopravní inženýr, bojovník proti překladišti v Malešicích, Praha 10, NK, BEZPP
+45. Bc. Bruce Bybee, 27 let, překladatel, fotograf, Praha 6, NK, BEZPP
+46. Mgr. Lucie Chmelová, 57 let, biochemička, Praha 6, NK, BEZPP
+47. Michael Málek, 56 let, šéfredaktor Technického týdeníku, nadšený divadelní ochotník, Praha 6, NK, BEZPP
+48. Ing. Markéta Hrnčírová, 52 let, technik v zemědělském výzkumu, Praha 1, TEAM, Volt
+49. Ing. Radek Boháč, 44 let, audiovizuální tvůrce, Praha 10, NK, BEZPP
+50. Mgr. Jana Hřebíčková, 41 let, pořadatelka kulturních akcí, Praha 6, NK, BEZPP
+51. BcA. Hana Dvořáčková, 35 let, filmová a televizní střihačka, Praha 6, NK, BEZPP
+52. Ing. Jan Baše, 55 let, projektant, zakladatel a správce skupiny Bezdomovec je také člověk, Praha 10, NK, BEZPP
+53. Bc. Jan Klátil, 36 let, programátor, člen Aliance a spolku Pro Euro, Praha 3, TEAM, Volt
+54. Ondřej Letocha, 41 let, IT konzultant, programátor, zastánce obyvatel sídliště Vlasta, Praha 10, NK, BEZPP
+55. Ivana Broučková, 62 let, úřednice, Praha 10, NK, BEZPP
+56. BcA. Emma Ditrich DiS., 26 let, studentka divadelní režie, Praha 6, NK, BEZPP
+57. Miroslav Minka, 65 let, stavební technik, Praha 2, NK, BEZPP
+58. Anna Novotná Perlínová, 42 let, analytička, Praha 6, NK, BEZPP
+59. Nicole Čejková, 23 let, studentka, Praha 6, NK, BEZPP
+60. Jakub Houdek, 43 let, pracovník v sociálních službách, básník, Praha 6, NK, BEZPP
+61. Matyáš Tichovský, 33 let, IT odborník a levicový libertarián, Praha 8, TEAM, Volt
+62. Vratislav Němec, 42 let, strojní konstruktér, Praha 10, NK, BEZPP
+63. Dagmar Kalošová, 58 let, provozní, Praha 10, NK, BEZPP
+64. Ing. Petr Vostrý MBA, 56 let, manažer, Praha 6, NK, BEZPP
+65. Ing. Tomáš Janout, 35 let, podnikatel v oblasti dopravy a technologií, Praha 6, NK, BEZPP
+# 17 Demokratická strana zelených - ZA PRÁVA ZVÍŘAT, sdružení DSZ - ZA PRÁVA ZVÍŘAT a NK
+1. Mgr. Hana Janišová, 64 let, předsedkyně Pražského spolku ochránců zvířat, Praha-Vinoř, NK, BEZPP
+2. Mgr. Vendula Wolfová, 40 let, předsedkyně spolku Psí senioři v nouzi z.s., Praha 5, NK, BEZPP
+3. Mgr. Barbora Tocauerová, 50 let, tlumočník a lektor cizích jazyků, předsedkyně Moravskoslezského spolku ochránců zvířat, Praha 7, NK, BEZPP
+4. Danuše Herpe Jungmannová, 72 let, umělec v důchodu, člen Stálé komise Senátu pro rozvoj venkova — řešení týrání zvířat, předsedkyně spolku SOS for Pets z.s., Chlumec, DSZ-ZA PR.ZVÍŘ., BEZPP
+5. Renata Vikartová, 73 let, ochránce zvířat, dříve zaměstnankyně ČIŽP, členka AOPK - strážce přírody, Praha 11, NK, BEZPP
+6. Monika Fenderlová, 60 let, úřednice, ochránce zvířat, Praha 5, DSZ-ZA PR.ZVÍŘ., BEZPP
+7. Zuzana Borovská, 42 let, administrativní pracovnice, členka spolku PES nejvěrnější přítel z.s., Praha 13, NK, BEZPP
+8. Marcela Bienebergová, 56 let, vychovatelka v ZŠ, ochránce zvířat, Most, NK, BEZPP
+9. Jiří Anderle, 57 let, zastupitel, předseda spolků DO z.s. a VRMKO z.s., předseda DSZ - ZA PRÁVA ZVÍŘAT, Klenčí pod Čerchovem, DSZ-ZA PR.ZVÍŘ., DSZ-ZA PR.ZVÍŘ.
+# 18 PATRIOTI PRO PRAHU
+1. Jiří Vítek, 53 let, místostarosta MČ Praha 8, lektor civilní ochrany, dobrovolný správce Bohnického ústavního hřbitova, Praha 8, Patrioti ČR, Patrioti ČR
+2. René Pavlů, 61 let, podnikatel a patriot Prahy 1, Praha 1, NK, BEZPP
+3. Mgr. Michal Janovský, 58 let, učitel na gymnáziu, Praha 8, Patrioti ČR, BEZPP
+4. Radka Přenosilová, 48 let, ekonomická účetní, Praha 8, NK, BEZPP
+5. Martin Drnek, 20 let, student, Praha 18, NK, BEZPP
+6. Bc. René Buřič, 54 let, autor naučných a historických her, Praha 1, NK, BEZPP
+7. Miroslav Šindelář, 44 let, asistent pedagoga, Praha 18, Patrioti ČR, BEZPP
+8. Bc. Michal Švarc, 61 let, zastupitel MČ Praha 8, Praha 8, Patrioti ČR, Patrioti ČR
+9. Jan Horn, 47 let, umělecký kovář, živnostník, Praha 8, Patrioti ČR, BEZPP
+10. Mgr. Karolína Vítková LL.M., 29 let, specialistka krizového řízení, Praha 8, NK, BEZPP
+11. Jan Holomoj, 48 let, předseda SVJ, Praha 18, NK, BEZPP
+12. Ing. Tomáš Oliva, 74 let, předseda Spolku občanů a přátel Malé Strany a Hradčan, Praha 1, NK, BEZPP
+13. Ing. Tomáš Franěk, 42 let, bankéř, Praha 1, NK, BEZPP
+14. Olga Kodajová, 76 let, důchodkyně, Praha 1, NK, BEZPP
+15. Mgr. Petra Koštová, 37 let, realitní makléřka, Praha 8, Patrioti ČR, Patrioti ČR
+16. Kateřina Pechmanová, 48 let, správkyně IT aplikací, Praha 8, Patrioti ČR, BEZPP
+17. Marie Andel, 46 let, daňová expertka, Praha 8, NK, BEZPP
+18. Bc. Petra Skořepová, 47 let, sociální pracovnice, Praha 8, NK, BEZPP
+19. Roman Gaňo, 47 let, živnostník, řemeslník, Praha 8, NK, BEZPP
+20. Ing. Vladimír Krištof, 77 let, starosta Sboru dobrovolných hasičů Praha 1, Praha 1, NK, BEZPP
+21. Markéta Průšová, 48 let, zástupkyně vedoucí, Praha 8, Patrioti ČR, BEZPP
+22. Zdeněk Najer, 51 let, řidič nákladního vozu, Praha 8, Patrioti ČR, Patrioti ČR
+23. Ludmila Gočaltovská, 36 let, čalounice, Praha 1, NK, BEZPP
+24. Mgr. Hana Larequi, 81 let, důchodkyně, Praha 5, NK, BEZPP
+25. Marcela Maňasová, 54 let, prodavačka, Praha 8, Patrioti ČR, BEZPP
+26. Jaroslav Dobrý, 49 let, podnikatel, Praha 8, Patrioti ČR, BEZPP
+27. Agáta Šimánková, 30 let, oční optička, Praha 8, NK, BEZPP
+28. David Běhounek, 31 let, letecký mechanik, Praha 8, NK, BEZPP
+29. Lenka Krátká, 52 let, referentka, Praha 8, NK, BEZPP
+30. Jiří Suchý, 53 let, pracovník tepelného hospodářství, Praha 8, Patrioti ČR, Patrioti ČR
+31. Miroslava Horynová, 59 let, všeobecná sanitářka, Praha 8, NK, BEZPP
+32. Pavel Kerbl, 53 let, podnikatel, řemeslník, Praha 8, Patrioti ČR, BEZPP
+33. Robert Žák, 48 let, manažer, Praha 8, NK, BEZPP
+34. Iveta Nová, 56 let, provozní specialistka, Praha 8, Patrioti ČR, Patrioti ČR
+35. Michaela Vlčková, 37 let, bankovní úřednice, Praha 1, NK, BEZPP
+36. Miroslav Šatoplet, 81 let, zpěvák, Praha 1, NK, BEZPP
+37. Lukáš Dolák, 45 let, živnostník, elektrikář, Praha 8, Patrioti ČR, BEZPP
+38. Jiří Humpolec, 45 let, business analytik, Praha 8, NK, BEZPP
+39. Monika Hlaváčková, 62 let, účetní, Praha 8, NK, BEZPP
+40. Jana Klaclová, 75 let, důchodkyně, Praha 8, Patrioti ČR, Patrioti ČR
+41. František Holík, 51 let, tenisový trenér, Praha 8, NK, BEZPP
+42. Vendula Mališková, 42 let, veterinární sestra, Praha 8, NK, BEZPP
+43. JUDr. Roman Janošťák, 59 let, advokát, Praha 8, NK, BEZPP
+44. David Kopský, 50 let, realitní makléř, Praha 8, NK, BEZPP
+45. Miroslav Juppe, 43 let, podnikatel, Praha 1, NK, BEZPP
+46. Alexander Osipov, 55 let, skladník-školitel, Praha 8, NK, BEZPP
+47. Jiří Laštůvka, 54 let, podnikatel, Praha 8, NK, BEZPP
+48. Petr Košta, 33 let, živnostník, Praha 8, Patrioti ČR, BEZPP
+49. Jana Tomascová, 62 let, důchodkyně, Praha 4, NK, BEZPP
+50. Zuzana Marková, 49 let, produkční, Praha 1, NK, BEZPP
+51. Margit Králová, 66 let, pracovnice v gastronomii, Praha 1, Patrioti ČR, BEZPP
+52. Jiří Šálek, 59 let, obchodník, Praha 1, NK, BEZPP
+53. Magdalena Göll, 42 let, podnikatelka, Praha 1, NK, BEZPP
+54. Petr Marek, 61 let, správce Filmových ateliérů Barrandov, Praha 1, NK, BEZPP
+55. Ing. Jiří Ehrlich, 72 let, inženýr ve výzkumu a vývoji ČVUT, Praha 1, NK, BEZPP
+56. akad. mal. Markéta Jírová, 68 let, akademická malířka, Praha 1, NK, BEZPP
+57. Nicola Nová, 34 let, asistentka, Praha 8, NK, BEZPP
+58. Roman Vopička, 70 let, kavárník, Praha 1, NK, BEZPP
+59. Jan Malinovský, 37 let, pracovník v gastronomii, Praha 5, NK, BEZPP
+60. Dagmar Ehrlichová, 60 let, stavařka, Praha 1, NK, BEZPP
+61. Roman Kučera, 53 let, montér, Praha 8, NK, BEZPP
+62. Vít Hlaváček, 33 let, OSVČ, Praha 8, NK, BEZPP
+63. Lukáš Blüml, 37 let, vedoucí provozovny, Praha 8, NK, BEZPP
+64. David Jakubínský, 42 let, podnikatel, Praha 8, NK, BEZPP
+65. Milada Magnusková, 73 let, důchodkyně, Praha 8, NK, BEZPP
+# 19 REZIDENTI – REBELOVÉ pro změnu Prahy
+1. Martin Motl, 56 let, zastupitel MČ Praha 1 a předseda Výboru pro participaci, prosadil, aby o části veřejných peněz v participativním rozpočtu rozhodovali občané i děti, zakladatel hnutí REZIDENTI, Praha 1, Rebelové, BEZPP
+2. Miloslav Zientek, 50 let, zakladatel strany Rebelové a garant dopravní části programu VIZE 26 pro Prahu zahrnující bezplatnou MHD pro Pražany, bezpečnou a plynulou dopravu a lepší spojení celé Prahy, Praha 9, Rebelové, Rebelové
+3. Ing. Jaroslav Vítek, 67 let, manažer kybernetické bezpečnosti a pověřenec pro ochranu osob. údajů Krajského úřadu Středočesk. kraje, emerit. tajemník MČ Praha 1, člen Sboru dobrov. hasičů, předseda dozor. rady Nadace Pražské děti, Praha 1, Rebelové, BEZPP
+4. Zdeňka Buláková, 70 let, organizátorka komunitního a kulturního života ve spolku Žijeme v centru, spoluzakladatelka souseds. akcí na Kozím plácku a mezinárod. oper. slavností OPERUM, členka Komise kultury a sportu MČ Praha 1, Praha 1, Rebelové, BEZPP
+5. MgA. Boris Moravec, 76 let, filmový architekt, scénograf a výtvarník, podílel se na vzniku legendárních českých filmů a pohádek (Tři veteráni, O princezně Jasněnce a létajícím ševci), Praha 1, Rebelové, BEZPP
+6. Petra Pětioká, 47 let, hypoteční specialistka, členka Výboru proti vylidňování centra a pro podporu komunitního života MČ Praha 1, členka spolků Petřín pro život a Petřínská iniciativa se zaměřením na péči o veřejnou zeleň, Praha 1, Rebelové, BEZPP
+7. Mgr. Petr Lukáš, 60 let, učitel tělocviku a němčiny, profesionální tenisový trenér hráčů světového žebříčku ATP, člen Komise pro informatiku a Smart Cities MČ Praha 1, Praha 1, Rebelové, BEZPP
+8. Martin Arden, 59 let, zastupitel MČ Praha 1 a předseda Komise sociální, emeritní zastupitel hl. m. Prahy a zakladatel Nadačního fondu humanitární pomoci, zakladatel spolupráce Prahy 1 s potravinovou bankou, Praha 1, Rebelové, BEZPP
+9. Jakub Hrubý, 43 let, podnikatel – pekař, člen spolku hráčů deskových her a modelářů, pořadatel turnajů v deskových hrách, Praha 1, NSS, BEZPP
+10. Adam Křikava, 52 let, podnikatel v oblasti vzdělávání a marketingu, golfových turnajů a akcí BeBirdie Tour, Praha 1, Rebelové, BEZPP
+11. Pavlína Pešek Kristufová, 44 let, vedoucí kanceláře a certifikovaná průvodkyně po Praze a České republice, organizátorka volnočasových spolkových aktivit pro děti na Kampě, Praha 5, Rebelové, BEZPP
+12. Ing. Jakub Veselý, 49 let, podnikatel a firemní konzultant, člen správní rady Nadace Pražské děti a emeritní člen dozorčí rady Obecního domu a.s., předseda Komise pro bezbariérovou Prahu 1, Praha 1, Rebelové, BEZPP
+13. PhDr. Silvia Jenček Pavlicová, 62 let, archivářka Archivu hlavního města Prahy od roku 1991, spoluautorka odborné publikace Pražské povstání 1945 očima kronikářů, Praha 1, Rebelové, BEZPP
+14. Bc. Slavomír Primák DiS., MBA, 54 let, klenotník, starožitník a tvůrce českých medailí, vyznamenání a symbolů, dobrovolník pracující se seniory i dětmi ve skautu, Praha 1, Rebelové, BEZPP
+15. Mgr. Klára Hegerová, 50 let, grafická designérka, kurátorka a zakladatelka projektu Krásná práce, propagátorka kvalitního městského prostoru bez vizuálního smogu, Praha 5, NK, BEZPP
+16. Antonín Metál, 71 let, zkušební komisař odborné způsobilosti úředníků, odborník na veřejnou správu, emeritní tajemník Městského úřadu v Novém Boru a emeritní vedoucí odboru veřejné správy Ministerstva vnitra, Praha-Zličín, Rebelové, BEZPP
+17. Markéta Nova, 51 let, nákupčí ve filmové produkci a předsedkyně SVJ, ochránkyně zvířat, Praha 1, NK, BEZPP
+18. Mgr. Pavel Šváb, 66 let, učitel hudby a pedagog Pedagogické fakulty Univerzity Karlovy, předseda SVJ, Praha 1, Rebelové, BEZPP
+19. Richard Srb, 39 let, šéfkuchař - podnikatel v gastronomii, spolumajitel cateringové společnosti, emeritní člen Asociace kuchařů a cukrářů ČR a reprezentant České republiky na kuchařské olympiádě 2006, Praha 5, Rebelové, BEZPP
+20. Vladislav Svoboda, 76 let, aktivní senior a předseda Národně sociální strany, Praha 3, NSS, NSS
+21. Radek Srb, 54 let, manažer sportovních akcí a sportovní funkcionář, emeritní generální tajemník, člen prezidia Asociace golfových hřišť, Praha 6, Rebelové, BEZPP
+22. Michal Válek, 66 let, strojní inženýr a technický odborník, disident, Praha 5, NK, BEZPP
+23. Ivana Dvořáková, 61 let, podnikatelka v oblasti chovatelských potřeb, provozovatelka ZOOPapu, Praha 5, NK, BEZPP
+24. Petr Šafář, 45 let, odborník a podnikatel v oblasti vodního hospodářství se zaměřením na vodu a její infrastrukturu jako strategický veřejný zájem, Praha-Zbraslav, Rebelové, BEZPP
+25. Jana Palicová, 60 let, specialistka public relations a spoluzakladatelka Nadačního fondu veřejného zdraví, Praha 13, Rebelové, BEZPP
+26. Boris Moravec, 46 let, podnikatel v oblasti správy nemovitostí, člen Komise pro územní rozvoj a veřejný prostor a Komise pro investice MČ Praha 1, Praha 1, Rebelové, BEZPP
+27. Marta Richterová, 54 let, herečka a moderátorka, Praha 1, Rebelové, BEZPP
+28. Mgr. Bc. Pavel Hodek, 52 let, obchodní manažer, člen Jednotky dobrovolných hasičů Praha 1, člen Komise pro dopravu MČ Praha 1 se zaměřením na rezidentní parkování, Praha 1, NK, BEZPP
+29. Markéta Donáthová, 43 let, učitelka mateřské školy, Praha 4, NSS, BEZPP
+30. Tereza Dušková Dotlačilová, 34 let, výtvarnice, fotografka a grafická designérka, organizátorka komunitního života na Kampě a průvodkyně v Národním pedagogickém muzeu, Praha 1, Rebelové, BEZPP
+31. Eva Hrbáčková, 76 let, aktivní seniorka, Praha 2, Rebelové, BEZPP
+32. ak. arch. Dipl.-Ing. Roman Květoň, 64 let, autorizovaný architekt, projektant a hudebník, Praha 1, Rebelové, BEZPP
+33. Ing. Věra Vojtová, 71 let, ekonomka a podnikatelka, Praha 12, Rebelové, BEZPP
+34. Hubert Kvaček, 20 let, student a sportovec, Praha 1, Rebelové, BEZPP
+35. Šárka Giotto, 53 let, asistentka ředitele, Praha 9, Rebelové, BEZPP
+36. Albert Zientek, 25 let, finanční a procesní analytik, Praha 4, Rebelové, BEZPP
+37. Sandra Lhotská, 37 let, administrativní pracovnice, organizátorka volnočasových aktivit pro děti na Kampě, Praha 5, Rebelové, BEZPP
+38. Rafael Josefi, 19 let, student a aktivní člen mládežnických iniciativ, Praha 4, NSS, BEZPP
+39. Eva Jandová, 43 let, odborná technická pracovnice, Praha 10, Rebelové, BEZPP
+40. Muslim Muzajev, 24 let, účetní, představitel mladé generace podnikatelů, Praha 10, Rebelové, BEZPP
+41. Irena Kratochvílová, 67 let, odborná referentka v oblasti energetiky, Praha 1, Rebelové, BEZPP
+42. Radek Neužil, 44 let, obchodní a marketingový ředitel, Praha 8, Rebelové, BEZPP
+43. Jana Zahradníčková, 56 let, výtvarnice a prodejkyně originální umělecké tvorby na Karlově mostě, Praha 1, Rebelové, BEZPP
+44. Milan Pazderník, 51 let, živnostník, vinárník a restauratér z Prahy 1, Praha 1, Rebelové, BEZPP
+45. Aneta Pohorská, 36 let, účetní, farmářka a prodejkyně na farmářských trzích, Praha 1, Rebelové, BEZPP
+46. Richard Pittl, 50 let, elektrikář a živnostník, Praha 5, Rebelové, BEZPP
+47. Petra Řezníčková, 62 let, živnostnice v oblasti kosmetických služeb, Praha 5, Rebelové, BEZPP
+48. Tomáš Palic, 49 let, podnikatel v oblasti IT a technologických služeb, předseda správní rady Nadačního fondu veřejného zdraví, Praha 5, Rebelové, BEZPP
+49. Dagmar Hrubá, 42 let, pracovnice v gastronomii a organizátorka komunitních aktivit pro děti v SK Union Vršovice, Praha 10, NSS, BEZPP
+50. Jaroslav Veselý, 70 let, specialista v gastronomii, Praha 1, Rebelové, BEZPP
+51. Andrea Vidímová, 36 let, staniční všeobecná zdravotní sestra Nemocnice Na Františku, Praha 1, NK, BEZPP
+52. David Křikava, 18 let, student a organizátor sportovních akcí pro děti, Praha 7, Rebelové, BEZPP
+53. Jan Řebíček, 46 let, zdravotník v Nemocnici Na Františku, Praha 1, NK, BEZPP
+54. Ivana Havlíčková, 63 let, bankéřka se specializací na osobní bankovnictví, Praha 11, Rebelové, BEZPP
+55. Věra Pelešková, 51 let, výtvarnice, Praha-Kunratice, Rebelové, BEZPP
+56. Ing. Petra Švecová, 41 let, produkční, Praha 5, Rebelové, BEZPP
+57. Petr Kratochvíl, 39 let, OSVČ a fotbalový trenér, Praha 5, Rebelové, BEZPP
+58. Martina Bílková, 53 let, módní návrhářka, dlouholetá podnikatelka v oblasti textilu a módní tvorby, spolumajitelka salonu MarLen, Praha 5, Rebelové, BEZPP
+59. František Šimák, 41 let, řidič autobusu DP hl. m. Prahy, Praha 10, NK, BEZPP
+60. Daniela Ottomanská, 19 let, aktivní studentka, členka sdružení prosazujícího dostupnější střední školy pro děti, které v Praze bydlí, Praha 5, NK, BEZPP
+61. Petr Čihula, 48 let, odborný servisní technik výtahů, Praha 5, Rebelové, BEZPP
+62. Alice Krejčíková, 76 let, aktivní seniorka, Praha 6, NK, BEZPP
+63. Jan Pešek, 48 let, šéfkuchař a gastronomický odborník, Praha 5, Rebelové, BEZPP
+64. Emma Luisa Tjunikova, 19 let, studentka, představitelka mladé generace se zkušeností s divadlem a kulturou, Praha 5, Rebelové, BEZPP
+65. Tereza Pletánková, 32 let, pracovnice v gastronomii, Praha-Zbraslav, Rebelové, BEZPP
+# 20 Spojená levice pro Prahu (KSČM, ČSSD, KSČ)
+1. Ing. Petr Vlček, 47 let, vědeckovýzkumný pracovník, Praha 13, KSČM, KSČM
+2. Ing. Jiří Bodenlos, 64 let, dřevař, bývalý místostarosta MČ Praha 4, Praha 4, ČSSD, ČSSD
+3. Jiří Svoboda DiS., 33 let, pedagogický pracovník, Praha 8, KSČ, KSČ
+4. Mgr. Petra Prokšanová, 41 let, socioložka, marketérka, Praha 15, KSČM, KSČM
+5. Michaela Jakubův, 50 let, office manager, Praha 14, ČSSD, ČSSD
+6. Adam Dusil, 25 let, student politologie, člen Mladých sociálních demokratů, Praha 10, KSČM, BEZPP
+7. Milan Krajča, 43 let, místopředseda Ústředního výboru Komunistické strany Čech a Moravy, Praha-Lipence, KSČM, KSČM
+8. Matyas Ferenc, 22 let, malíř, OSVČ, Praha 9, ČSSD, BEZPP
+9. PhDr. Jiří Horák CSc., 73 let, jednatel obchodní firmy, Praha 17, KSČM, KSČM
+10. Ing. et Ing. Ladislav Blaha, 49 let, ekonom, stavař, specialista veřejných zakázek a nakupování, Praha 13, ČSSD, ČSSD
+11. JUDr. Ivan Hrůza, 72 let, podnikový právník, Praha 6, KSČM, KSČM
+12. Ing. Yvona Legierská, 70 let, bývalá náměstkyně ministra financí ČR, vysokoškolský pedagog, Praha 5, ČSSD, ČSSD
+13. Mgr. Jaroslava Frejková, 55 let, dozorčí stanice metra, Praha 4, KSČ, KSČ
+14. Vojtěch Bayer, 75 let, elektrotechnik, Praha 11, KSČM, KSČM
+15. Jessica Siváková, 21 let, uklízečka, Praha 8, ČSSD, BEZPP
+16. JUDr. Čestmír Kubát CSc., 70 let, advokát, Praha 1, KSČM, KSČM
+17. Adele Feigl, 28 let, průvodkyně, Praha 6, KSČM, BEZPP
+18. Mgr. Jaromír Petelík, 43 let, manažer, Praha 8, KSČM, KSČM
+19. Lukáš Kratochvíl, 27 let, IT specialista, člen Mladých sociálních demokratů, Praha 13, KSČM, BEZPP
+20. Felicita Carmenatová, 41 let, hospodyně, Praha 7, ČSSD, BEZPP
+21. Petr Šimůnek, 61 let, 1. místopředseda ÚV KSČM, Praha 8, KSČM, KSČM
+22. Helena Kočová, 44 let, redaktorka týdeníku Naše pravda, Praha-Čakovice, KSČM, KSČM
+23. RSDr. Pavel Pilný, 82 let, novinář, Praha 8, KSČM, KSČM
+24. Milan Ferenc, 28 let, řidič, Praha 9, ČSSD, BEZPP
+25. PhDr. Miroslava Moučková, 72 let, spisovatelka, novinářka, Praha 7, KSČM, KSČM
+26. RSDr. Vlastislav Kučera, 72 let, podnikatel, Praha 10, KSČM, KSČM
+27. PhDr. Helena Briardová, 79 let, novinářka, Praha 6, KSČM, KSČM
+28. Michal Knap, 23 let, pracovník ostrahy, Praha 9, ČSSD, BEZPP
+29. Marek Tošil, 68 let, řidič tramvaje, Praha 5, KSČM, KSČM
+30. RNDr. Milan Macek CSc., 69 let, ředitel střední školy, Praha 5, KSČM, KSČM
+31. JUDr. Michael Perez, 76 let, advokát, Praha 4, KSČM, KSČM
+32. Ing. Svatopluk Semecký, 78 let, účetní auditor, Praha 12, KSČM, KSČM
+33. Jana Novotná, 47 let, zdravotní sestra, Praha 7, KSČM, BEZPP
+34. Jan Hořejší, 66 let, důchodce, Praha-Libuš, ČSSD, ČSSD
+35. Vladimír Hochmann, 49 let, zahradník, Praha 7, KSČM, KSČM
+36. Filip Papazov, 45 let, provozovatel restaurace, Praha 10, KSČM, KSČM
+37. Karel Valeš, 18 let, student, člen Mladých sociálních demokratů, Praha 8, KSČM, BEZPP
+38. Ing. Vladimír Chaloupka, 68 let, předseda bytového družstva, Praha 8, KSČM, KSČM
+39. Mgr. Marta Semelová, 66 let, pedagožka, Praha 5, KSČM, KSČM
+40. Ing. Petr Pick PhD., 44 let, testovací inženýr, Praha 11, KSČM, BEZPP
+41. Vladislav Kopal, 72 let, předseda OV KSČM Praha 8, Praha 8, KSČM, KSČM
+42. Ing. Helena Sovová, 79 let, předsedkyně Klubu společenských věd, Praha 5, KSČM, KSČM
+43. Monika Kotková, 60 let, květinářka, Praha 12, KSČM, KSČM
+44. Luboš Petříček DiS., 37 let, operátor výroby piva, Praha 13, KSČM, BEZPP
+45. Jiří Bláha, 68 let, důchodce, Praha 7, ČSSD, BEZPP
+46. Ing. Jan Zeman CSc., 69 let, ekolog, Praha 13, KSČM, KSČM
+47. Jan Ernst, 72 let, technik, Praha 7, KSČM, KSČM
+48. Michal Klusák, 47 let, skladník, Praha 15, KSČM, KSČM
+49. Bc. Jaroslav Kvapil DiS., 48 let, středoškolský učitel, Praha 10, KSČM, KSČM
+50. Ing. Mojmír Strakoš, 78 let, důchodce, Praha 11, KSČM, KSČM
+51. František Lojda, 72 let, tajemník OV KSČM Praha 10, Praha 15, KSČM, KSČM
+52. PhDr. Rostislav Plachý, 73 let, důchodce, Praha 7, KSČM, KSČM
+53. Mgr. Jana Volfová, 68 let, místopředsedkyně ČSSD, středoškolská učitelka, Praha 7, ČSSD, ČSSD
+54. Ing. Vladimír Roškot, 76 let, osoba samostatně výdělečně činná, Praha 11, KSČM, KSČM
+55. Ing. Jaroslav Tesarčík, 77 let, důchodce, Praha 4, KSČM, KSČM
+56. Jaroslav Jelínek, 58 let, údržbář, Praha 7, KSČM, KSČM
+57. Pavel Kraus, 54 let, plavčík, Praha 5, KSČM, KSČM
+58. Bohumil Přibyl, 71 let, důchodce, Praha 2, ČSSD, BEZPP
+59. Ing. Jiří Nejedlo, 83 let, důchodce, Praha 8, KSČM, KSČM
+60. Marek Hlaváček, 22 let, student, člen Mladých sociálních demokratů, Praha 7, KSČM, BEZPP
+61. Ing. Pavel Rejf, 75 let, výzkumný pracovník, Praha 10, KSČM, KSČM
+62. Jiří Šoch, 62 let, zaměstnanec veřejného sektoru, Praha-Nedvězí, KSČM, KSČM
+63. Jan Záhořík, 50 let, učitel autoškoly, Praha 7, KSČM, KSČM
+64. Marie Packová, 68 let, archivářka, Praha 14, KSČM, KSČM
+65. Karel Skoupil, 73 let, manažer, Praha 4, KSČM, KSČM
+# 21 Volte Pravý Blok - stranu za snadnou a rychlou ODVOLATELNOST politiků a státních úředníků PŘÍMO OBČANY, za NÍZKÉ daně, VYROVNANÝ rozpočet, MINIMALIZACI byrokracie, SPRAVEDLIVOU a NEZKORUMPOVANOU policii a justici, REFERENDA a PŘÍMOU demokracii WWW.CIBULKA.NET, kandidující s nejlepším protikriminálním programem PŘÍMÉ demokracie a hlubokého národního, duchovního a mravního obrození VY NEVĚŘÍTE POLITIKŮM A JEJICH NOVINÁŘŮM? NO KONEČNĚ! VĚŘME SAMI SOBĚ!!! - ale i s mnoha dalšími DŮVODY, proč bychom měli jít tentokrát VŠICHNI K VOLBÁM, ale - pokud nechceme být ZNOVU obelháni, podvedeni a okradeni - NEVOLIT ŽÁDNOU PARLAMENTNÍ TUNEL - STRANU vládnoucí (post) komunistické RUSKO - ČESKÉ totalitní FÍZLOKRACIE a jejich likvidační protinárodní politiku ČÍM HŮŘE, TÍM LÉPE!!! - jenž žádá o volební podporu VŠECHNY ČESKÉ OBČANY a daňové poplatníky, kteří chtějí změnit dnešní kriminální poměry, jejichž jsme všichni obětí, v jejich pravý opak! V BOJI MEZI DOBREM A ZLEM, PRAVDOU A LŽÍ, NELZE BÝT NEUTRÁLNÍ A PŘESTO ZŮSTAT SLUŠNÝ!!! Proto děkujeme za Vaši podporu!!! Nevěříte-li na pokoru u popravčí káry, zdá-li se vám naše kandidátka málo dokonalá nebo postrádáte-li na ní zástupce své obce nebo města a přitom MÁTE ODVAHU v této válce Lidí Dobra s vládnoucími Lidmi Zla povstat z jimi naordinovaného občanského bezvědomí, kterým nás ničí a dnešní DEMOKRATURU, SKRYTOU TOTALITU a OTROKÁŘSTVÍ VYŠŠÍHO ŘÁDU zásadním způsobem změnit, KANDIDUJTE ZA NÁS!!! Kontakt: Volte Pravý Blok www.cibulka.net, PO BOX 595, 170 00 Praha 7
+1. Petr Cibulka, 75 let, pětinásob. polit. vězeň, vydavatel seznamů StB, nez. novinář, pol. analytik, šéfredaktor NECENZUROVANÝCH NOVIN, serveru WWW.CIBULKA.NET a NECENZUROVANÝCH dokumentů na WWW.YOUTUBE.COM a WWW.ODYSEE.COM, Praha 7, PB, PB
+2. Marek Skoček, 53 let, lékárník, Praha-Štěrboholy, PB, BEZPP
+3. Matěj Dvořák, 27 let, podnikatel, Praha 6, PB, BEZPP
+4. Zdeněk Macíček, 43 let, IT specialista, Praha 10, PB, BEZPP
+5. Martin Holman, 37 let, ekonom-živnostník, Praha 5, PB, BEZPP
+6. Josef Cafourek, 78 let, podnikatel, Praha 6, PB, BEZPP
+7. Karolína Diallo, 42 let, psycholožka, Praha 5, PB, BEZPP
+8. Milan Bureš, 43 let, programátor, Praha 11, PB, BEZPP
+9. Jakub Bílý, 30 let, číšník, Praha-Řeporyje, PB, BEZPP
+10. František Staněk, 70 let, politicky aktivní důchodce, Praha 4, PB, BEZPP
+11. Michal Pišan, 18 let, zaměstnanec ve veřejné dopravě, Praha 21, PB, BEZPP
+12. Štěpán Jelínek, 27 let, knihovník, Praha 5, PB, BEZPP
+13. Jakub Blažíček, 21 let, student, Praha 21, PB, BEZPP
+14. Jan Skácel, 19 let, student, Praha 4, PB, BEZPP
+# 22 ANO 2011
+1. Jan Hušbauer, 38 let, místostarosta MČ Praha 4, předseda kontrolního výboru ZHMP, sportovní manažer, Praha 4, ANO, ANO
+2. Mgr. Mária Ševčíková, 59 let, 1. místostarostka MČ Praha 14, Praha 14, ANO, ANO
+3. Mgr. Zdeněk Kučera MBA, 47 let, starosta MČ Praha 18, projektový manažer, Praha 18, ANO, ANO
+4. Mgr. Lenka Vedralová, 48 let, místostarostka MČ Praha 12, Praha 12, ANO, ANO
+5. Mgr. Martin Benkovič, 37 let, 1. místostarosta MČ Praha 17, Praha 17, ANO, ANO
+6. Bc. Tomáš Kaněra, 47 let, starosta MČ Praha 22, Praha 22, ANO, ANO
+7. Radomír Nepil, 41 let, místostarosta MČ Praha 8, Praha 8, ANO, ANO
+8. JUDr. Petr Lachnit, 59 let, 1. místostarosta MČ Praha 5, Praha 5, ANO, ANO
+9. Václav Bílek, 58 let, podnikatel, Praha 15, ANO, ANO
+10. Bc. Adam Knedlhans, 24 let, předseda organizace Mladé ANO, asistent místostarosty MČ Praha 2, Praha 2, ANO, ANO
+11. Ing. et Ing. Anna Patočková, 39 let, projektová manažerka, Praha 3, ANO, ANO
+12. RNDr. Marcela Plesníková, 63 let, místostarostka MČ Praha 13, Praha 13, ANO, ANO
+13. Ing. Mgr. Petr Soukal Ph.D., 50 let, statistik, ekonom, Praha 6, ANO, ANO
+14. Radek Mikšík, 60 let, podnikatel v oboru střech a izolací, Praha 7, ANO, ANO
+15. Irena Michalcová, 62 let, 1. místostarostka MČ Praha 4, Praha 4, ANO, ANO
+16. Ing. Tomáš Novák BA (Hons), 40 let, expert na umělou inteligenci, Praha 11, ANO, ANO
+17. Mgr. Miroslav Šoukal, 71 let, místostarosta MČ Praha 17, emeritní ředitel ZŠ, Praha 17, ANO, ANO
+18. Mgr. Martin Hrubčík MBA, 48 let, manažer veřejné správy, Praha 9, ANO, ANO
+19. Stanislav Nekolný MBA, 51 let, místostarosta MČ Praha 18, člen ZHMP, Praha 18, ANO, ANO
+20. Mgr. et Mgr. Jana Solomonová, 42 let, radní MČ Praha 8, Praha 8, ANO, ANO
+21. Ing. Karel Grabein Procházka, 66 let, ekonom, radní MČ Praha 1, Praha 1, ANO, ANO
+22. Bc. Jan Kolář, 42 let, místostarosta MČ Praha 2, Praha 2, ANO, ANO
+23. Ing. Vít Pěkný Ph.D., 63 let, technik, Praha 21, ANO, ANO
+24. Štefan Lazárek MBA, 50 let, podnikatel, Praha 16, ANO, ANO
+25. Adam Houštecký, 19 let, předseda Mladé ANO Praha, student, Praha 19, ANO, ANO
+26. Jan Štorek, 52 let, předseda komise pro sport, iniciátor projektu Trenéři ve škole, zastupitel MČ Praha 8, Praha 8, ANO, ANO
+27. Vladimír Krejčík, 60 let, zámečník, Praha 20, ANO, ANO
+28. RNDr. Tomáš Hrdinka Ph.D., 46 let, radní MČ Praha 4, hydrolog, geograf, Praha 4, ANO, ANO
+29. Mgr. Yvona Trčalová, 60 let, členka komise vzdělávání a výchovy, členka školské rady, speciální pedagožka, podnikatelka, Praha 21, ANO, ANO
+30. Jaroslav Hrozek, 54 let, výpravčí, Praha 12, ANO, ANO
+31. Bc. Pavel Fišer, 55 let, podnikatel, Praha-Libuš, ANO, ANO
+32. Ing. Kristýna Kyselová, 41 let, personalistka, podnikatelka, Praha 6, ANO, ANO
+33. Mgr. Yveta Kvapilová, 54 let, předsedkyně majetkového výboru MČ Praha 13, Praha 13, ANO, ANO
+34. Ing. Karel Med, 55 let, radní MČ Praha 14, IT správce, předseda SVJ, Praha 14, ANO, ANO
+35. Ing. Jaroslav Straka, 60 let, bankovní specialista, Praha 22, ANO, ANO
+36. Ing. Michaela Kozumplíková, 51 let, energetička, Praha 9, ANO, ANO
+37. Iva Koudelková, 49 let, OSVČ, Praha 12, ANO, ANO
+38. Ing. Vladimír Mencl, 73 let, ekonom, Praha-Šeberov, ANO, ANO
+39. Ing. Pavel Blaha, 82 let, důchodce, Praha 13, ANO, ANO
+40. Ing. Martina Aišmanová MBA, 48 let, bezpečnostní expert, Praha 15, ANO, ANO
+41. Mgr. Pavel Traub, 38 let, publicista, odborář a technik ve stavebnictví, Praha 4, ANO, ANO
+42. Bc. Miroslav Šubrt, 55 let, zdravotnický záchranář, zastupitel MČ Praha 14, Praha 14, ANO, ANO
+43. Bc. Michaela Pincová MBA, 52 let, OSVČ, Praha 12, ANO, ANO
+44. Vlastimil Plášek, 39 let, podnikatel, Praha 2, ANO, ANO
+45. Ing. Vlasta Alexyová, 48 let, ekonom, Praha-Řeporyje, ANO, ANO
+46. Ing. Michal Drábek, 66 let, ekonom, Praha 13, ANO, ANO
+47. Ing. Petr Štefek, 51 let, business architekt, Praha 11, ANO, ANO
+48. prof. MUDr. Sergej Zacharov Ph.D., FEAPCCT, 51 let, profesor 1. lékařské fakulty Univerzity Karlovy, lékař, Praha 9, ANO, ANO
+49. JUDr. Věra Havlíčková, 70 let, právnička, Praha 17, ANO, ANO
+50. Aneta Hejrovská, 34 let, radní pro OSVZ, ředitelka organizace, Praha 14, ANO, ANO
+51. Martin Švejda, 49 let, OSVČ, Praha 12, ANO, ANO
+52. Peter Mrázek, 80 let, důchodce, Praha 17, ANO, ANO
+53. Bc. Martin Černý MBA, 47 let, obchodní ředitel, Praha 11, ANO, ANO
+54. Marek Tolde, 51 let, facility manager, Praha 6, ANO, ANO
+55. Mgr. Jan Klusoň, 32 let, radní MČ Praha 5, Praha 5, ANO, ANO
+56. Ing. Josef Zobal, 71 let, dopravní inženýr, Praha 13, ANO, ANO
+57. Ing. Lubomír Brož, 60 let, radní MČ Praha 5, Praha 5, ANO, ANO
+58. Ing. Pavel Prokeš, 53 let, finanční manažer, Praha 13, ANO, ANO
+59. Josef Endal, 73 let, úředník, Praha 5, ANO, ANO
+60. Radek Šimon, 52 let, předseda SVJ, Praha 11, ANO, ANO
+61. Ing. Radek Lacko, 58 let, radní MČ Praha 4, ekonom, Praha 4, ANO, ANO
+62. Bc. Eva Ingrid Antl Burianová, 48 let, front office manager, Praha 15, ANO, ANO
+63. Ing. Milada Staňková, 68 let, ekonomka, Praha 13, ANO, ANO
+64. Helena Lukešová, 58 let, radní MČ Praha 18, Praha 18, ANO, ANO
+65. Karel Slavata, 52 let, referent, Praha 18, ANO, ANO
+# 23 Naše Praha SNK ED
+1. Jiří Benýšek, 35 let, vedoucí showroomu, Praha 12, NK, BEZPP
+2. Ing. Petr Hůla Ph.D., 51 let, zastupitel Městské části Praha 12, školitel, Praha 12, NK, BEZPP
+3. Ing. Rudolf Melezinek MBA, 57 let, vedoucí řízení firemních procesů a rizik, Praha 12, NK, BEZPP
+4. Jan Krupička, 50 let, podnikatel, Praha 12, NK, BEZPP
+5. Mgr. Bořek Černovský, 65 let, ekonom, místostarosta Prahy 17, Praha 17, SNK ED, BEZPP
+6. Vladimír Lender, 69 let, technický dozor, Praha 12, NK, BEZPP
+7. Jana Hájková, 49 let, obchodní manažerka v bankovnictví, zastupitelka MČ Praha 20, Praha 20, SNK ED, BEZPP
+8. Ing. Jaromír Benýšek, 71 let, projektant, Praha 12, NK, BEZPP
+9. Johana Krupičková, 24 let, obchodní zástupkyně, Praha 12, NK, BEZPP
+10. Růžena Pokorná, 70 let, lektorka AJ, překladatelka, Praha 12, NK, BEZPP
+11. Michal Pangrác, 48 let, truhlář, Praha 3, NK, BEZPP
+12. Iveta Klenorová, 64 let, podnikatelka, Praha 12, NK, BEZPP
+13. Jiří Opletal, 71 let, dispečer, Praha 12, NK, BEZPP
+14. Petr Kostroun, 41 let, programátor, Praha 8, NK, BEZPP
+15. Tomáš Dědourek, 36 let, logistik, Praha 2, NK, BEZPP
+16. Ing. Ondřej Buzek, 35 let, datový analytik, člen aktivních záloh, dronař, Praha 6, NK, BEZPP
+17. Ing. Alena Dvořáková, 62 let, finanční poradkyně, Praha 5, NK, BEZPP
+18. Vladimír Slíž, 62 let, obchodní zástupce, Praha 17, NK, BEZPP
+19. Stanislav Opluštil, 62 let, obchodní zástupce, Praha 17, NK, BEZPP
+20. MUDr. Jana Střelečková CSc., 80 let, důchodkyně, Praha 4, NK, BEZPP
+21. Jana Greifová, 75 let, ekonom v důchodu, Praha 12, NK, BEZPP
+22. Ing. Katarína Knížková, 75 let, účetní, Praha 12, NK, BEZPP
+23. Jakub Babka, 30 let, logistik a kouzelník, Praha 20, NK, BEZPP
+24. Adam Kapa, 37 let, OSVČ, opravy lodí, Praha 4, NK, BEZPP
+25. Šárka Zelená, 31 let, administrativní pracovnice, Praha 1, NK, BEZPP
+26. Martin Černovský, 35 let, stavbyvedoucí, Praha 14, NK, BEZPP
+27. Tatiana Virvová, 58 let, podologická poradkyně, Praha 8, NK, BEZPP
+28. Jiří Hodík, 21 let, student, Praha 12, NK, BEZPP
+29. Jiří Horák, 56 let, lékař stomatolog, Praha 12, NK, BEZPP
+30. Tereza Straková, 22 let, studentka, Praha 12, NK, BEZPP
+31. Ing. Táňa Straková, 53 let, marketingová výzkumnice, Praha 12, NK, BEZPP
+32. Marie Benýšková, 70 let, důchodkyně, Praha 12, NK, BEZPP
+33. Jakub Jelen, 38 let, programátor, Praha 4, NK, BEZPP
+34. Ing. Irena Milaniaková, 61 let, ekonomka, Praha 10, NK, BEZPP
+35. Ladislav Fidrmuc, 73 let, důchodce, Praha 4, NK, BEZPP
+36. Ing. Václav Baloun, 80 let, ekonom, Praha 6, NK, BEZPP
+37. Ing. Helena Balounová, 75 let, ekonomka, Praha 6, NK, BEZPP
+38. Libuše Kučerová, 86 let, důchodkyně, Praha 4, NK, BEZPP
+39. Mgr. Jarmila Hranáčová, 85 let, důchodkyně, Praha 4, NK, BEZPP
+40. Petr Pařízek, 44 let, železobetonář, Praha 8, NK, BEZPP
+41. Jiří Hájek, 51 let, manažer telekomunikací, Praha 20, NK, BEZPP
+# 24 SEN PRO PRAHU s Václavem Láskou, s podporou HPP 11 a strany Mourek
+1. Mgr. Václav Láska, 52 let, senátor, advokát a předseda hnutí SEN 21, Praha 5, SEN 21, SEN 21
+2. Monika Shaw Salajová M.Sc., 39 let, zastupitelka a manažerka, Praha 5, SEN 21, SEN 21
+3. PhDr. Šárka Zdeňková, 48 let, socioložka, předsedkyně Hnutí pro Prahu 11, Praha 11, SEN 21, HPP 11
+4. Ing. Ondřej Havlena Ph.D., 42 let, dopravní inženýr, Praha 8, SEN 21, Mourek
+5. PhDr. Ing. Veronika Fajmonová Ph.D., 42 let, akademická pracovnice, Praha 7, SEN 21, SEN 21
+6. Ing. Milan Vrkoč, 64 let, zastupitel a zemědělský inženýr, Praha 5, SEN 21, SEN 21
+7. Ing. Mgr. Martin Tumpach, 40 let, starosta MČ Praha-Ďáblice, Praha-Ďáblice, SEN 21, BEZPP
+8. Ing. Vít Korselt, 65 let, diplomat, Praha 6, SEN 21, SEN 21
+9. Bc. Petr Špringr DiS., 42 let, designér digitálních produktů a předseda politické strany Mourek, Praha 8, SEN 21, Mourek
+10. Ing. Aleš Kulhánek Ph.D., 48 let, manažer projektů v ochraně životního prostředí, předseda spolku Zelené Roztyly, Praha 11, SEN 21, HPP 11
+11. Mgr. Lenka Mlynařík Habrnálová, 39 let, právnička, Praha 5, SEN 21, BEZPP
+12. Jakub Goldmann, 43 let, podnikatel v IT a učitel, Praha 6, SEN 21, BEZPP
+13. Ing. Jan Škoch, 41 let, návrhář elektroniky, Praha 13, SEN 21, SEN 21
+14. Ing. arch. Tomáš Vích, 59 let, architekt, urbanista a publicista, Praha 1, NK, BEZPP
+15. Ing. Václav Ševčík, 44 let, podnikatel, Praha 1, SEN 21, BEZPP
+16. Svatopluk Bartoň, 59 let, zastupitel a podnikatel, Praha 5, SEN 21, SOPU
+17. MgA. Michaela Badinková, 47 let, herečka, Praha 5, SEN 21, BEZPP
+18. Ing. Petr Městecký, 53 let, stavební inženýr, projektový manažer a zakladatel spolku Snesitelné bydlení v centru Prahy, Praha 1, NK, BEZPP
+19. Marcel Zenkl, 56 let, geodet, Praha 1, NK, BEZPP
+20. Mgr. Ivana Hovorková, 40 let, učitelka na ZŠ a zakladatelka spolku Za lepší Jižní Město II, Praha 11, HPP 11, HPP 11
+21. JUDr. Jan Červenka, 60 let, právník, trenér mládeže, Praha-Vinoř, Mourek, Mourek
+22. Ing. Zuzana Pokorná Ph.D., 47 let, vedoucí ošetřovatelka Záchranné stanice pro zvířata v Jinonicích, Praha 5, SEN 21, BEZPP
+23. Vladislav Píša, 58 let, živnostník, Praha 13, SEN 21, SEN 21
+24. doc. MUDr. Markéta Vlčková Ph.D., 46 let, lékařka a akademická pracovnice, Praha 5, SEN 21, BEZPP
+25. Ing. Petr Mráz Ph.D., 56 let, vývojový inženýr, Praha 8, Mourek, Mourek
+26. Bc. Radek Vokřál, 28 let, provozní specialista, Praha 5, SEN 21, SEN 21
+27. Ing. Lenka Kortusová, 58 let, manažerka ve finančním sektoru, předsedkyně výboru SVJ, Praha 11, HPP 11, BEZPP
+28. Ing. Petr Dlouhý MBA, 35 let, manažer finančního controllingu, Praha 5, SEN 21, BEZPP
+29. Michaela Ivasienková, 41 let, IT specialistka, členka výboru SVJ, Praha 11, HPP 11, BEZPP
+30. JUDr. Ing. Karin Luftmanová, 57 let, advokátka, Praha 8, Mourek, Mourek
+31. Henryk Josef Tietjen, 23 let, zastupitel a student, Praha 5, SEN 21, SEN 21
+32. RNDr. Zdeněk Kresl, 36 let, zástupce ředitelky Odboru mezinárodní spolupráce AV ČR, Praha 5, SEN 21, BEZPP
+33. Mgr. Monika Váchalová, 57 let, správkyně majetku, Praha 11, HPP 11, BEZPP
+34. Mgr. Kristina Špringr, 40 let, UX výzkumnice, Praha 8, Mourek, Mourek
+35. Ing. Michaela Řezníčková, 34 let, mateřská dovolená, Praha 5, SEN 21, SEN 21
+36. JUDr. Lenka Vančatová, 67 let, právnička, Praha 5, SEN 21, SOPU
+37. David Aulík, 48 let, finanční poradce, Praha 11, HPP 11, BEZPP
+38. Ing. Jan Wagner, 70 let, projektový manažer, Praha 8, Mourek, Mourek
+39. Mgr. Matej Cíbik Ph.D., 40 let, vysokoškolský pedagog a výzkumný pracovník, Praha 5, SEN 21, BEZPP
+40. David Prokeš DiS., 42 let, radní MČ Praha-Ďáblice a obchodní zástupce, Praha-Ďáblice, SEN 21, BEZPP
+41. Giovanni Astorino, 31 let, obchodní zástupce, Praha 4, SEN 21, BEZPP
+42. Ing. Veronika Smajda, 46 let, SAP specialistka, Praha 10, SEN 21, BEZPP
+43. Mgr. Petra Bardová, 37 let, PR manažerka, Praha-Ďáblice, SEN 21, BEZPP
+44. Ing. arch. Markéta Chmelařová, 41 let, architektka, Praha 5, SEN 21, BEZPP
+45. Mgr. Anna Křenková, 46 let, středoškolská učitelka, Praha-Ďáblice, Mourek, Mourek
+46. Václav Novák, 63 let, IT projektový manažer, Praha 11, HPP 11, BEZPP
+47. Mgr. Ema Cíbik Stašová, 39 let, lektorka finštiny a překladatelka, Praha 5, SEN 21, SEN 21
+48. Jitka Honsnejmanová DiS., 34 let, administrativní pracovnice, Praha 8, Mourek, Mourek
+49. Bc. Barbora Vrablíková, 40 let, psychoterapeutka, Praha 6, SEN 21, SEN 21
+50. Mgr. Martina Jurasová, 48 let, státní zaměstnankyně a ministerský rada, Praha 10, SEN 21, BEZPP
+51. Ing. Petr Salaj, 40 let, country sport leader, Praha 5, SEN 21, SEN 21
+52. Mgr. Jan Nedvěd LL.M., 46 let, manažer ve farmaceutické firmě, Praha 8, Mourek, Mourek
+53. Alžběta Bystřická, 38 let, art directorka, Praha 5, SEN 21, BEZPP
+54. Bc. Antonín Teplý, 44 let, radiologický asistent, trenér Slovanu Bohnice, Praha 8, Mourek, Mourek
+55. Bc. Lucie Kudrnová, 48 let, speciální pedagožka, Praha 5, SEN 21, BEZPP
+56. Mgr. Zdenka Duževičová, 69 let, seniorka, Praha 8, Mourek, BEZPP
+57. Lucie Váchová, 59 let, administrativní pracovnice, Praha 6, SEN 21, BEZPP
+58. Mgr. Kristián Jiřík, 30 let, farmář a zemědělec, Praha 5, SEN 21, BEZPP
+59. Iveta Čadková, 60 let, asistentka pedagoga, Praha 5, SEN 21, BEZPP
+60. Antonie Mocová, 73 let, kuchařka, Praha 2, SEN 21, BEZPP
+61. Jaroslava Kučerová, 60 let, úřednice, Praha 8, SEN 21, BEZPP
+62. Tomáš Kudrna, 47 let, elektromontér a prezident Odborové rady v Dopravním podniku hl. m. Prahy, Praha-Zbraslav, SEN 21, BEZPP
+63. Věra Bosáková, 71 let, překladatelka a seniorka, Praha 11, HPP 11, BEZPP
+64. Josef Kroka, 53 let, správce budov, Praha 2, SEN 21, BEZPP
+65. David Štěrbáček, 51 let, programový manažer, člen spolku Zelené Roztyly, Praha 11, HPP 11, BEZPP
+</script>
 <script>
 (() => {
 'use strict';
@@ -339,21 +1427,7 @@ const LS_CFG = 'volby-praha-cfg-v1', LS_BAL = 'volby-praha-ballots-v1', LS_DRAFT
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-const SAMPLE = `# 1 LEPŠÍ ŽIVOT PRO LIDI – zrušení daně z nemovitostí, min. mzda 50.000 Kč, min. důchod 30.000 Kč, návrat cen energií na ceny z roku 2019, v obchodech zboží nejvyšší kvality za ceny dostupné pro každého, STOP válce
-1. Pavel Opl, 55 let, odborník na bezpečnost, emeritní policejní rada Policejního prezídia ČR, Praha 9, bez politické příslušnosti
-2. Pavel May, 63 let, elektrikář, Praha 7, LZPL
-3. Ing. Alexandr Gegalčij, 77 let, strojní inženýr, Praha 18, bez politické příslušnosti
-4. Kristina Livoreka, 51 let, pracovnice diagnostického ústavu, Praha 7, bez politické příslušnosti
-5. Miloš Sádecký, 62 let, obchodní manažer, Praha 10, ND
-6. Jan Panocha, 44 let, rentiér, Praha 11, ND
-7. Stanislav Filip, 49 let, pracovník soukromé bezpečnostní služby, Praha 8, bez politické příslušnosti
-8. Šárka Heverlová, 42 let, maminka na mateřské dovolené, Praha 9, bez politické příslušnosti
-9. Dušan Rudecký, 54 let, invalidní důchodce, bývalý voják z povolání, Praha 2, bez politické příslušnosti
-10. Vojtěch Kudrna, 20 let, student, Praha 2, bez politické příslušnosti
-# 2 ANO LEPŠÍ ČESKO S MIMOZEMŠŤANY
-1. Jiří Dubský, 56 let, elektrotechnik, Praha 5, mimozemstani.eu, navržen mimozemstani.eu
-2. Jaroslav Čipka, 53 let, IT technik, Praha 12, mimozemstani.eu, navržen mimozemstani.eu
-3. Jiří Koloušek, 81 let, podnikatel, emeritní letecký instruktor, Praha 4, bez politické příslušnosti, nezávislý kandidát`;
+const SAMPLE = document.getElementById('kandidati-2026').textContent.trim();
 
 /* ---------- candidate list parsing ---------- */
 function parseList(text) {
@@ -397,7 +1471,8 @@ function listToText(parties) {
 
 /* ---------- state ---------- */
 let cfg = load(LS_CFG, null);
-if (!cfg || !Array.isArray(cfg.parties)) cfg = { seats: 65, parties: parseList(SAMPLE).parties, sample: true };
+// sample = the built-in official list is in use; refresh it on every load so app updates reach the phone
+if (!cfg || !Array.isArray(cfg.parties) || cfg.sample) cfg = { seats: (cfg && cfg.seats) || 65, parties: parseList(SAMPLE).parties, sample: true };
 let ballots = load(LS_BAL, []);
 const draft = load(LS_DRAFT, {});
 let sel = { parties: new Set(draft.parties || []), cands: new Set(draft.cands || []) };
@@ -411,7 +1486,7 @@ const persistDraft = () => save(LS_DRAFT, { parties: [...sel.parties], cands: [.
 
 const pOf = k => +k.split(':')[0];
 const cOf = k => +k.split(':')[1];
-const shortName = p => p.name.split(/\s[–-]\s/)[0];
+const shortName = p => { const s = p.name.split(/\s[–-]\s/)[0]; return s.length > 90 ? s.slice(0, 87).replace(/\s+\S*$/, '') + '…' : s; };
 const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const pl = (n, a, b, c) => `${n} ${n === 1 ? a : (n >= 2 && n <= 4 ? b : c)}`;
@@ -745,7 +1820,7 @@ $('applyList').addEventListener('click', () => {
   if (!parties.length) { setMsg('listMsg', false, 'Seznam je prázdný. Každá strana musí začínat řádkem s #.'); return; }
   applyParties(parties, 'listMsg');
 });
-$('resetSample').addEventListener('click', () => { $('listText').value = SAMPLE; setMsg('listMsg', true, 'Ukázka vložena – potvrďte tlačítkem Použít seznam.'); });
+$('resetSample').addEventListener('click', () => { $('listText').value = SAMPLE; setMsg('listMsg', true, 'Oficiální seznam vložen – potvrďte tlačítkem Použít seznam.'); });
 
 $('xmlFile').addEventListener('change', async e => {
   const files = [...e.target.files]; if (!files.length) return;
@@ -857,7 +1932,6 @@ document.addEventListener('visibilitychange', wake);
 document.addEventListener('click', wake, { once: true });
 
 renderAll();
-if (cfg.sample) toast('Načtena ukázka ze dvou stran. Celé kandidátní listiny doplňte na kartě Kandidáti.');
 })();
 
 // offline support (service worker) – only on https/localhost; silently skipped elsewhere (file://, sandboxed iframe)
