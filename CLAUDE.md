@@ -17,6 +17,8 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 - `tests/real.test.js` + `tests/fixtures/ballot-21-24/` – real phone photos of a marked test ballot
   (page with parties 21–24, 4 angles); each photo alone and all four together must read exactly
   21: party + 4; 22: 22, 29; 23: 28; 24: party + 28, 35. `APP=<file>` runs them against another copy.
+- `tools/scan-photos.js` – prints what the app reads from given photos (one batch, like the app);
+  `OUT=<dir>` saves the preview overlays. Use it first on any new photo from the user.
 - `tools/make_icons.py` – regenerates icons (Pillow).
 - `README.md` – Czech user docs (GitHub Pages setup, home screen, rules, scan feature).
 
@@ -24,13 +26,16 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 
 ```
 npm test           # 20 UI tests, ~15 s
+npm run test:scan  # 19 synthetic photo tests, ~25 s; SCAN_SEED=n other crosses, SCAN_SAVE=dir keeps images
 npm run test:real  # 5 tests on real ballot photos, ~10 s
 npm run test:all   # all three suites
-npm run test:scan  # 19 photo tests; SCAN_SEED=n draws different crosses, SCAN_SAVE=dir keeps images
 ```
 Tests use Playwright from `/opt/node-tools/node_modules/playwright` (falls back to `require('playwright')`);
 Chromium is preinstalled in the cloud container – never run `playwright install`. No npm install needed.
-Run both suites (and a couple of `SCAN_SEED` values after touching scan code) before pushing.
+Run `npm run test:all` (and `test:scan` with a couple of `SCAN_SEED` values after touching scan code)
+before pushing. **Always wrap test and tool runs in `timeout`** (e.g. `timeout 300 npm run test:all`):
+a slow path in the recognition once hung a run for minutes – if a run takes much longer than above,
+treat it as a bug in the app, not as a slow machine.
 
 ## Architecture of `index.html`
 
@@ -85,17 +90,43 @@ Run both suites (and a couple of `SCAN_SEED` values after touching scan code) be
     tie → later photo; equally good readings that differ are reported;
   - thresholds `SCAN_MARK` 0.08 / `SCAN_UNSURE` 0.035; unsure marks are never applied; **Použít na
     lístek** only fills the draft, never saves.
-  Real-world data so far: one blank photo of page 1, a screenshot of the page with parties 21–24
-  (fold between candidates 42/43) and 4 photos of a marked test ballot, page 21–24 (21: party + 4;
-  22: 22, 29; 23: 28; 24: party + 28, 35) – all read correctly; these 4 are in `tests/fixtures/`
-  (the user allowed it). New real photos with known crosses should be added there with a test.
   Detection works on grayscale + a local (adaptive) threshold, so uneven light and shadows are handled
   per region; a global black-and-white conversion would lose pale pencil crosses.
 
+## Real ballot and photos – what is known
+
+- The printed ballot is a large folded sheet; each party is one full-height column (party box at the
+  top, then one box per candidate); 65-candidate lists fold between candidates 42 and 43. Party boxes
+  of all columns on a page share one row. Pages photographed so far: parties 1–2 (blank) and 21–24.
+- Real data: one blank photo of page 1 (not in the repo – shows the voter list), a screenshot of the
+  app's overlay for page 21–24, and 4 photos of a marked test ballot, page 21–24 (21: party + 4;
+  22: 22, 29; 23: 28; 24: party + 28, 35) – all read correctly, in `tests/fixtures/ballot-21-24/`.
+- Photos the user uploads to the chat arrive downscaled (~1932×2576); the app downscales to 1400 px
+  anyway. A screenshot of the app's preview is not usable as input (labels cover the boxes).
+- Lessons from real photos: crossed boxes can look square (party-box-like) and tall; spacing varies
+  with the description length; creases make flat fake boxes and can shift half a page sideways;
+  text and frame lines can form fake columns; a stamp sits next to party 21.
+
+**Workflow for new photos from the user** (with the crosses they report as the truth):
+1. Save them to `tests/fixtures/<page-or-case>/` (ask first if anything personal is visible, e.g.
+   the voter list) and run `timeout 120 node tools/scan-photos.js <photos>` with `OUT=` to see the
+   overlays.
+2. Fix the recognition; check each photo alone and all together.
+3. Add the expected crosses to `tests/real.test.js`; confirm the test fails on the old version
+   (`APP=<old index.html>`) and passes now; run all suites; push and republish the artifact.
+
+## Open issues
+
+- Real hand-drawn crosses: only one marked test ballot (one page) so far; other pages and pens untested.
+- A very small photo (≈ ⅓ size) can miss the last box of a short column (count warning shown).
+- Pages of 65-candidate lists only (e.g. 9–10, 14–15) look alike – the app assumes photos follow each
+  other in ballot order and offers the alternatives; the user picks the right one.
+- The two unconfirmed legal edge cases under *Counting rules*.
+
 ## Publishing
 
-- **GitHub**: repo `mirpol1337/volby`, branch `claude/prague-ballot-counter` (the only branch; the PR/merge flow has not been set up).
-  GitHub Pages can serve it from the repo root.
+- **GitHub**: repo `mirpol1337/volby`, branch `claude/prague-ballot-counter` (the only branch; no PR
+  flow). Commit and push there. GitHub Pages can serve it from the repo root.
 - **claude.ai artifact** (what the user opens on the phone):
   https://claude.ai/artifact/SYNnpXVAoK2cfJDH2AB442 – publish to the same URL, never create a new one.
   The artifact must not contain the document wrapper, and its sandbox blocks downloads, so build it as:
@@ -104,7 +135,8 @@ Run both suites (and a couple of `SCAN_SEED` values after touching scan code) be
   ```
   Lines ending in `<!--wrap-->` (doctype, html/head/body tags, manifest/icon links) exist only for the
   standalone/Pages version – never put needed content on such lines. The service worker registers only
-  on https/localhost and fails silently inside the artifact sandbox.
+  on https/localhost and fails silently inside the artifact sandbox. Republish after every change to
+  `index.html` the user should see (and bump `VERSION` in `sw.js` for the Pages version).
 
 ## Conventions
 
