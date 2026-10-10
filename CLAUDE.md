@@ -135,8 +135,7 @@ treat it as a bug in the app, not as a slow machine.
 - A very small photo (≈ ⅓ size) can miss the last box of a short column (count warning shown).
 - Pages of 65-candidate lists only (e.g. 9–10, 14–15) look alike – the app assumes photos follow each
   other in ballot order and offers the alternatives; the user picks the right one.
-- Photo recognition takes ~2–3 s per photo on a desktop since `scanFrames()` (was ~0.7 s). The user is fine
-  with a few seconds per photo – prefer accuracy over speed.
+- Photo recognition takes ~2–3 s per photo on a desktop since `scanFrames()` (was ~0.7 s) – check on a phone.
 - The two unconfirmed legal edge cases under *Counting rules*.
 
 ## Publishing
