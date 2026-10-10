@@ -35,15 +35,29 @@ async function photo(page, marks, v = {}) {
       box.push({ key: `${ci + 1}:P`, x: bx, y: 114, w: bw, h: 34 });
       c.font = 'bold 16px sans-serif'; c.fillText(`STRANA ${ci + 1} – NÁZEV STRANY`, bx + 50, 128);
       c.font = '13px sans-serif'; c.fillText(`vylosované číslo: ${ci + 1}`, bx + 50, 148);
-      const pitch = Math.min(25, 1340 / n), bh = Math.min(17, Math.round(pitch * 0.7));
+      // v.pitch: the same pitch for every column (as on the real ballot); v.fold: {y, gap} – the page is
+      // folded at y: boxes below move down by gap and a crease (shadow + highlight) crosses the page
+      const pitch = v.pitch || Math.min(25, 1340 / n), bh = Math.min(17, Math.round(pitch * 0.7));
       for (let i = 0; i < n; i++) {
-        const y = Math.round(180 + i * pitch);
+        let y = Math.round(180 + i * pitch);
+        if (v.fold && y >= v.fold.y) y += v.fold.gap;
         box.push({ key: `${ci + 1}:${i + 1}`, x: bx, y, w: bw, h: bh });
         c.font = 'bold 13px sans-serif'; c.fillText(`${i + 1}. Jméno Příjmení, ${30 + i} let`, bx + 46, y + 9);
         if (pitch >= 24) { c.font = '12px sans-serif'; c.fillText('Praha 1, bez politické příslušnosti', bx + 60, y + 21); }
       }
     });
     box.forEach(b => c.strokeRect(b.x, b.y, b.w, b.h));
+    if (v.fold) {
+      const fy = v.fold.y + v.fold.gap / 2 + (v.fold.crease ?? (v.fold.fake ? -10 : 0)), g = c.createLinearGradient(0, fy - 9, 0, fy + 9);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.42, 'rgba(30,30,30,0.6)'); g.addColorStop(0.5, 'rgba(30,30,30,0.7)');
+      g.addColorStop(0.6, 'rgba(255,255,255,0.5)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(0, fy - 9, W, 18);
+      // the crease itself: two sharp edges about half a box apart (this is what fakes a flat box)
+      c.fillStyle = 'rgba(60,60,60,0.3)'; c.fillRect(0, fy - 4, W, 8);
+      c.fillStyle = 'rgba(45,45,45,0.9)'; c.fillRect(0, fy - 5, W, 2); c.fillRect(0, fy + 3, W, 2);
+      // v.fold.fake: columns where the fold shows up as a flat empty box in the middle of the gap (as on a real photo)
+      (v.fold.fake || []).forEach(ci => { c.lineWidth = 1.6; c.strokeRect(110 + ci * 510 + 14, fy + (v.fold.fakeAt ?? 15), 34, 8); });
+    }
     // pencil crosses, strokes ending a bit inside or over the border
     const stroke = (x1, y1, x2, y2) => {
       for (let k = 0; k < 2; k++) {
@@ -170,6 +184,29 @@ test('odhad stran: 65 a 65 políček je víc možností – nabídka a navázán
   g = await guess(page);
   assert.deepEqual([g.first, g.status], ['14', 'ambiguous']);
   assert.match(await page.textContent('#scanGuess'), /navazuje na předchozí stránku/);
+});
+
+/* the ballot is folded between candidates 42 and 43 (as on the real Prague ballot, page with parties 21–24) */
+const FOLD = { cols: [65, 41], pitch: 19.5 };
+test('přehyb: falešné políčko na přehybu se vynechá, kandidáti pod přehybem sedí', async page => {
+  const got = await scan(page, await photo(page, ['1:42', '1:45', '2:41'], { ...FOLD, seed: 1, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -4, fakeAt: 6 } }));
+  assert.equal(await page.inputValue('#scanFirst'), '22');
+  assert.deepEqual(got['22'].cands, [42, 45]);
+  assert.deepEqual(got['23'].cands, [41]);
+  assert.equal(got['22'].boxes, 65);
+  assert.equal(got['23'].boxes, 41);
+  assert.match(await page.textContent('#scanSum'), /Vynecháno 1 falešné políčko/);
+});
+test('přehyb: přehlédnuté políčko se doplní, kandidáti pod ním sedí', async page => {
+  const got = await scan(page, await photo(page, ['1:42', '1:45', '2:41'], { ...FOLD, seed: 1, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -10, fakeAt: 10 } }));
+  assert.deepEqual(got['22'].cands, [42, 45]);
+  assert.equal(got['22'].boxes, 65);
+});
+test('přehyb, natočená fotka', async page => {
+  const got = await scan(page, await photo(page, ['1:43', '1:65', '1:42', '2:P'], { ...FOLD, seed: 2, rot: 2, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -4, fakeAt: 6 } }));
+  assert.deepEqual(got['22'].cands, [42, 43, 65]);
+  assert.equal(got['23'].party, true);
+  assert.deepEqual([got['22'].boxes, got['23'].boxes], [65, 41]);
 });
 
 (async () => {

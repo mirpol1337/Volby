@@ -2433,6 +2433,7 @@ function scanDetect(g, gi, w, h) {
     if (!cands.length || (!head && cands.length < 3) || hm < 0.75 || hm > 1.3 || cands.filter(b => b.sp).length < cands.length * 0.4) {
       rejected.push(...c.seeds); continue;
     }
+    cands.forEach(b => { b.hr = b.h / Hf(b.cy); });
     found.push({ head, cands, x: xl((head || cands[0]).cy), y: (head || cands[0]).cy, n: cands.length + (head ? 1 : 0) });
   }
   // the same column reached from two seed chains → keep the fuller one
@@ -2461,7 +2462,7 @@ function scanDetect(g, gi, w, h) {
     return [n / vals.length, tc ? nc / tc : 0];
   };
   for (const c of valid) for (const b of [c.head, ...c.cands]) if (b) [b.ink, b.inkC] = ink(b);
-  return { cols: valid, rejected, w, h, box: [W0, H0] };
+  return { cols: valid, rejected, w, h, box: [W0, H0], ink };
 }
 /* scan-core:end */
 
@@ -2487,7 +2488,8 @@ function scanGuess(res) {
     obs.forEach((o, i) => {
       const p = cfg.parties[s + i];
       if (!p) { cost += 8; return; }
-      const diff = p.cands.length - o.d;
+      const kept = scanKeep(res.cols[i], p.cands.length), diff = p.cands.length - kept.boxes.length;
+      cost += 0.2 * kept.ghosts.length; // a fit that needs no fake boxes dropped is better
       if (diff === 0) return;
       cost += diff > 0 && o.cut ? 0.3 : Math.min(8, Math.abs(diff));
     });
@@ -2502,6 +2504,71 @@ function scanGuess(res) {
     status: best.cost > obs.length * 1.5 ? 'poor' : near.length > 1 ? 'ambiguous' : 'sure',
     options: (near.length > 1 ? near : opts.slice(0, 3)).slice(0, 8)
   };
+}
+/* Fake boxes: where the ballot is folded, the crease can look like a flat box between two candidate
+   boxes (or after the last one). Candidate boxes are evenly spaced, so a real box has a neighbour at
+   the usual distance on at least one side; a fake one sits alone in the gap of the fold and is
+   usually flatter. Score = distance to the nearer neighbour in local box pitches. */
+const scanMedian = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+function scanGhostScores(B) {
+  const n = B.length;
+  if (n < 4) return B.map(() => 0);
+  const gaps = B.slice(1).map((b, i) => b.cy - B[i].cy);
+  return B.map((b, i) => {
+    const loc = scanMedian(gaps.slice(Math.max(0, i - 6), Math.min(gaps.length, i + 6))) || 1;
+    const gp = i > 0 ? gaps[i - 1] / loc : Infinity, gn = i < n - 1 ? gaps[i] / loc : Infinity;
+    return Math.min(gp, gn, 9);
+  });
+}
+// gaps that are a near-whole number (2 or 3) of the local pitch = one or two boxes missed there
+function scanMissedGaps(B) {
+  if (B.length < 4) return [];
+  const gaps = B.slice(1).map((b, i) => b.cy - B[i].cy);
+  return gaps.map((g, i) => {
+    const loc = scanMedian(gaps.slice(Math.max(0, i - 6), Math.min(gaps.length, i + 7))) || 1, r = g / loc, k = Math.round(r) - 1;
+    return { i, k, dev: Math.abs(r - k - 1) };
+  }).filter(f => f.k >= 1 && f.k <= 2 && f.dev < 0.25).sort((a, b) => a.dev - b.dev);
+}
+function scanInterpolate(b, N, t) {
+  const q = b.q.map((P, m) => [P[0] + (N.q[m][0] - P[0]) * t, P[1] + (N.q[m][1] - P[1]) * t]);
+  const xs = q.map(p => p[0]), ys = q.map(p => p[1]);
+  const v = { ...b, q, cx: b.cx + (N.cx - b.cx) * t, cy: b.cy + (N.cy - b.cy) * t, hr: 1, added: true,
+    x0: Math.floor(Math.min(...xs)), x1: Math.ceil(Math.max(...xs)), y0: Math.floor(Math.min(...ys)), y1: Math.ceil(Math.max(...ys)) };
+  if (scanRes && scanRes.ink) [v.ink, v.inkC] = scanRes.ink(v);
+  return v;
+}
+/* The candidate boxes of a column reconciled with the party's number of candidates:
+   1. a clearly fake box (alone in a wide gap and flat, or far from everything) is always dropped;
+   2. too many boxes → drop the most fake-looking ones (nearer neighbour > 1.2 pitch);
+   3. too few → fill gaps of two (three) pitches with interpolated boxes, ink measured as usual;
+   4. a fake-looking box together with a clean gap of one missed box → swap them. */
+function scanKeep(col, nCands) {
+  const memo = col.keep || (col.keep = new Map());
+  if (memo.has(nCands)) return memo.get(nCands);
+  let boxes = col.cands.slice();
+  const ghosts = [], added = [];
+  const dropAt = i => { ghosts.push(boxes[i]); boxes.splice(i, 1); };
+  let sc = scanGhostScores(boxes);
+  for (let i = boxes.length - 1; i >= 0; i--) if ((sc[i] >= 1.5 && boxes[i].hr < 0.8) || sc[i] >= 2.5) dropAt(i);
+  const weak = () => { const g = scanGhostScores(boxes); return g.map((v, i) => [v, i]).filter(([v]) => v > 1.2).sort((a, b) => b[0] - a[0]); };
+  while (boxes.length > nCands) { const w = weak(); if (!w.length) break; dropAt(w[0][1]); }
+  const fill = maxDev => {
+    const f = scanMissedGaps(boxes).filter(x => x.dev < maxDev)[0];
+    if (!f) return false;
+    const k = Math.min(f.k, Math.max(1, nCands - boxes.length)), b = boxes[f.i], N = boxes[f.i + 1];
+    const vs = Array.from({ length: k }, (_, j) => scanInterpolate(b, N, (j + 1) / (f.k + 1)));
+    boxes.splice(f.i + 1, 0, ...vs); added.push(...vs);
+    return true;
+  };
+  while (boxes.length < nCands && fill(0.25));
+  for (let guard = 0; guard < 3 && boxes.length === nCands; guard++) {
+    const w = weak(), f = scanMissedGaps(boxes).filter(x => x.k === 1 && x.dev < 0.12);
+    if (!w.length || !f.length) break;
+    dropAt(w[0][1]); fill(0.12);
+  }
+  const r = { boxes, ghosts, added };
+  memo.set(nCands, r);
+  return r;
 }
 const scanRange = (s, k) => {
   const a = cfg.parties[s], b = cfg.parties[Math.min(cfg.parties.length - 1, s + k - 1)];
@@ -2589,7 +2656,8 @@ function scanMap() {
     // a cross passes through the middle of the box; ink only near the border (a stroke from the
     // neighbouring box, a smudge) is reported as unsure
     const st = b => b.ink >= SCAN_MARK && b.inkC >= SCAN_UNSURE ? 'on' : b.ink >= SCAN_UNSURE ? 'unsure' : 'off';
-    return { p, col: c, head: c.head ? st(c.head) : 'none', cands: c.cands.map(st) };
+    const { boxes, ghosts, added } = p ? scanKeep(c, p.cands.length) : { boxes: c.cands, ghosts: [], added: [] };
+    return { p, col: c, boxes, ghosts, added, head: c.head ? st(c.head) : 'none', cands: boxes.map(st) };
   });
 }
 function scanShow() {
@@ -2615,16 +2683,17 @@ function scanShow() {
   // boxes of a plausible size that were not used (not in a column with a party box) – dashed grey
   res.rejected.filter(b => Math.abs(b.w - res.box[0]) <= res.box[0] * 0.4).forEach(b => quad(b, 'rgba(110,110,110,.9)', lw, [6, 4]));
   c.font = `700 ${fs}px sans-serif`; c.textBaseline = 'middle';
-  map.forEach(({ p, col, head, cands }) => {
-    [...(col.head ? [[col.head, head, p ? `${p.n}` : '?']] : []), ...col.cands.map((b, i) => [b, cands[i], p ? `${p.n}.${i + 1}` : `?.${i + 1}`])].forEach(([b, st, label]) => {
-      quad(b, COL[st], st === 'off' ? lw : lw * 2);
+  map.forEach(({ p, col, boxes, ghosts, head, cands }) => {
+    ghosts.forEach(b => quad(b, 'rgba(110,110,110,.9)', lw, [6, 4])); // fake boxes (fold of the paper) – dashed grey
+    [...(col.head ? [[col.head, head, p ? `${p.n}` : '?']] : []), ...boxes.map((b, i) => [b, cands[i], p ? `${p.n}.${i + 1}` : `?.${i + 1}`])].forEach(([b, st, label]) => {
+      quad(b, COL[st], st === 'off' ? lw : lw * 2, b.added ? [4, 3] : null);
       const tw = c.measureText(label).width + 6, x = Math.max(X0, b.x0 - tw - 4), y = b.cy;
       c.fillStyle = 'rgba(255,255,255,.85)'; c.fillRect(x, y - fs * 0.6, tw, fs * 1.2);
       c.fillStyle = COL[st] === COL.off ? '#0b6b31' : COL[st]; c.fillText(label, x + 3, y);
     });
   });
   // summary
-  const lines = map.map(({ p, head, cands }, ci) => {
+  const lines = map.map(({ p, head, cands, ghosts, boxes, added }, ci) => {
     if (!p) return `<li data-p=""><b>Sloupec ${ci + 1}</b>: <span class="w">za vybranou stranou už v seznamu další strana není – nepoužije se.</span></li>`;
     const marked = cands.map((s, i) => s === 'on' ? i + 1 : 0).filter(Boolean);
     const unsure = [head === 'unsure' ? 'strana' : '', ...cands.map((s, i) => s === 'unsure' ? `${i + 1}` : '')].filter(Boolean);
@@ -2634,6 +2703,8 @@ function scanShow() {
     let warn = '';
     if (cands.length > p.cands.length) warn += `<span class="w">Nalezeno ${pl(cands.length, 'políčko', 'políčka', 'políček')} kandidátů, kandidátů je jen ${p.cands.length} – je správně zvolená strana v levém sloupci? Křížky navíc se nepoužijí.</span>`;
     else if (cands.length !== p.cands.length) warn += `<span class="w">Nalezeno ${pl(cands.length, 'políčko', 'políčka', 'políček')} kandidátů, kandidátů je ${p.cands.length} – zkontrolujte.</span>`;
+    if (added.length) warn += `<span class="w">Doplněno ${pl(added.length, 'políčko', 'políčka', 'políček')}, které rozpoznání přehlédlo (${added.map(b => boxes.indexOf(b) + 1).join(', ')}) – v náhledu čárkovaně, zkontrolujte.</span>`;
+    if (ghosts.length) warn += `<span class="w">Vynecháno ${pl(ghosts.length, 'falešné políčko', 'falešná políčka', 'falešných políček')} (přehyb papíru) – v náhledu šedě čárkovaně.</span>`;
     if (head === 'none') warn += '<span class="w">Políčko strany nenalezeno – křížek u strany zkontrolujte ručně.</span>';
     if (unsure.length) warn += `<span class="w">Nejisté (nepoužije se): ${unsure.join(', ')}.</span>`;
     return `<li data-p="${p.n}" data-party="${head === 'on' ? 1 : 0}" data-cands="${marked.join(',')}" data-boxes="${cands.length}">` +
