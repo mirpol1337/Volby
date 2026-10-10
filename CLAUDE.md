@@ -118,8 +118,7 @@ Run `npm run test:all` before pushing. **Always wrap test and tool runs in `time
 - ballot.py: a column whose frame is not found is silently missing (party 21 on photo 3); a fold
   crease splits frames → wrong parties, all columns NEPŘEČTENO (nothing applied); pages of 65-candidate
   lists only (9–10, 14–15 …) need the left-column party picked by the user.
-- Untested inside the claude.ai artifact sandbox (WebAssembly + the parts mechanism); works over http
-  locally (`tools/build-artifact.sh` layout) and with the CDN.
+- Not available in the claude.ai artifact (see Publishing) – the phone must use the GitHub Pages version.
 - First use downloads ~65 MB (Pyodide + OpenCV) and takes a while on a phone; each photo ~4 s on a desktop.
 - The two unconfirmed legal edge cases under *Counting rules*.
 
@@ -129,11 +128,14 @@ Run `npm run test:all` before pushing. **Always wrap test and tool runs in `time
   flow). Commit and push there. GitHub Pages can serve it from the repo root.
 - **claude.ai artifact** (what the user opens on the phone):
   https://claude.ai/artifact/SYNnpXVAoK2cfJDH2AB442 – publish to the same URL, never create a new one.
-  The artifact must not contain the document wrapper, its sandbox blocks downloads and lets the page
-  fetch only files published with it (max 15 MB each), so build it with
-  `sh tools/build-artifact.sh <scratchpad>/art` and publish `art/scitani-praha.html` with `files` =
-  every file of `art/pyodide/` at `pyodide/<name>` (≤ 64 MB per publish – two publishes to the same URL;
-  the Pyodide files only need re-publishing when the Pyodide version changes).
+  **ballot.py cannot run in the artifact**: its sandbox lets the page fetch only files published with it,
+  and the artifact refuses archives (.zip, .whl – Pyodide's stdlib, numpy, OpenCV) under any type; the
+  CDN is blocked for fetches. Don't disguise the archives as other types. The artifact therefore still
+  holds the last build with the built-in JS recognizer (version 9, commit 358e1ba^ = bc951ce) – do not
+  republish it with the Pyodide version until the user decides; the ballot.py version is for GitHub Pages
+  (or any normal https hosting). `tools/build-artifact.sh` (page + `pyodide/` files, OpenCV in parts)
+  is for self-hosting Pyodide next to the page. To build a plain artifact page:
+  `grep -v '<!--wrap-->' index.html | grep -v 'id="dlCsv"' > <scratchpad>/scitani-praha.html`.
   Lines ending in `<!--wrap-->` (doctype, html/head/body tags, manifest/icon links) exist only for the
   standalone/Pages version – never put needed content on such lines. The service worker registers only
   on https/localhost and fails silently inside the artifact sandbox. Republish after every change to
