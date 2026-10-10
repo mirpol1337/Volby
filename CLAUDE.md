@@ -14,6 +14,9 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 - `tests/app.test.js` – UI tests (counting rules, entry, history, results, list import, backup, PWA/offline).
 - `tests/scan.test.js` – photo-recognition tests on synthetic ballot photos drawn in the page (no image
   files): single pages, rotation/light/JPEG, folds with fake boxes, several photos per ballot.
+- `tests/real.test.js` + `tests/fixtures/ballot-21-24/` – real phone photos of a marked test ballot
+  (page with parties 21–24, 4 angles); each photo alone and all four together must read exactly
+  21: party + 4; 22: 22, 29; 23: 28; 24: party + 28, 35. `APP=<file>` runs them against another copy.
 - `tools/make_icons.py` – regenerates icons (Pillow).
 - `README.md` – Czech user docs (GitHub Pages setup, home screen, rules, scan feature).
 
@@ -21,6 +24,8 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 
 ```
 npm test           # 20 UI tests, ~15 s
+npm run test:real  # 5 tests on real ballot photos, ~10 s
+npm run test:all   # all three suites
 npm run test:scan  # 19 photo tests; SCAN_SEED=n draws different crosses, SCAN_SAVE=dir keeps images
 ```
 Tests use Playwright from `/opt/node-tools/node_modules/playwright` (falls back to `require('playwright')`);
@@ -82,7 +87,8 @@ Run both suites (and a couple of `SCAN_SEED` values after touching scan code) be
     lístek** only fills the draft, never saves.
   Real-world data so far: one blank photo of page 1, a screenshot of the page with parties 21–24
   (fold between candidates 42/43) and 4 photos of a marked test ballot, page 21–24 (21: party + 4;
-  22: 22, 29; 23: 28; 24: party + 28, 35) – all read correctly. The photos are not in the repo.
+  22: 22, 29; 23: 28; 24: party + 28, 35) – all read correctly; these 4 are in `tests/fixtures/`
+  (the user allowed it). New real photos with known crosses should be added there with a test.
   Detection works on grayscale + a local (adaptive) threshold, so uneven light and shadows are handled
   per region; a global black-and-white conversion would lose pale pencil crosses.
 
@@ -106,5 +112,6 @@ Run both suites (and a couple of `SCAN_SEED` values after touching scan code) be
 - Colors only via the CSS tokens in `:root` (light + two dark blocks); test at 390 px width, light and dark.
 - Czech plurals via `pl(n, 'lístek', 'lístky', 'lístků')`; escape user/list text with `esc()`.
 - No `alert/confirm/prompt` (blocked in the artifact) – destructive actions use a two-tap confirm button.
-- Never put real voter data or photos of voter lists into the repo or tests.
+- Never put real voter data or photos of voter lists into the repo or tests (photos of test ballots
+  are fine when the user agrees).
 - Commit messages end with the Co-Authored-By / Claude-Session lines from the session instructions.

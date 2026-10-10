@@ -6,6 +6,8 @@
   "scripts": {
     "test": "node tests/app.test.js",
     "test:scan": "node tests/scan.test.js",
+    "test:real": "node tests/real.test.js",
+    "test:all": "node tests/app.test.js && node tests/scan.test.js && node tests/real.test.js",
     "icons": "python3 tools/make_icons.py"
   }
 }

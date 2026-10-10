@@ -67,6 +67,13 @@ Testy rozpoznání z fotek (kreslí si vlastní syntetické fotky lístku s kř�
 npm run test:scan
 ```
 
+Testy na skutečných fotkách z telefonu (`tests/fixtures/ballot-21-24/` – čtyři fotky téhož vyplněného zkušebního lístku, strana se stranami 21–24, z různých úhlů):
+
+```sh
+npm run test:real
+npm run test:all   # všechny testy
+```
+
 Je potřeba Node.js a balíček `playwright` s nainstalovaným Chromiem (`npm i -D playwright && npx playwright install chromium`). Testy vypíšou souhrn a při chybě skončí nenulovým kódem.
 
 Ikony v `icons/` se generují skriptem `python3 tools/make_icons.py` (potřebuje Pillow).
