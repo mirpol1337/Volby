@@ -12,7 +12,8 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 - `sw.js`, `manifest.webmanifest`, `icons/`, `.nojekyll` – offline PWA for GitHub Pages hosting.
   **Bump `VERSION` in `sw.js` whenever `index.html` or icons change**, otherwise phones keep the old copy.
 - `tests/app.test.js` – UI tests (counting rules, entry, history, results, list import, backup, PWA/offline).
-- `tests/scan.test.js` – photo-scan tests on synthetic ballot photos drawn in the page (no image files).
+- `tests/scan.test.js` – photo-recognition tests on synthetic ballot photos drawn in the page (no image
+  files): single pages, rotation/light/JPEG, folds with fake boxes, several photos per ballot.
 - `tools/make_icons.py` – regenerates icons (Pillow).
 - `README.md` – Czech user docs (GitHub Pages setup, home screen, rules, scan feature).
 
@@ -20,7 +21,7 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 
 ```
 npm test           # 20 UI tests, ~15 s
-npm run test:scan  # 15 scan tests; SCAN_SEED=n draws different crosses, SCAN_SAVE=dir keeps images
+npm run test:scan  # 19 photo tests; SCAN_SEED=n draws different crosses, SCAN_SAVE=dir keeps images
 ```
 Tests use Playwright from `/opt/node-tools/node_modules/playwright` (falls back to `require('playwright')`);
 Chromium is preinstalled in the cloud container – never run `playwright install`. No npm install needed.
@@ -52,17 +53,22 @@ Run both suites (and a couple of `SCAN_SEED` values after touching scan code) be
   - **Unconfirmed edge cases** (see git log / ask the user before changing): party + all its own
     candidates + another party's candidate is treated as valid; a cross at another party's withdrawn
     candidate uses up one of the 65 places in a party+candidates ballot.
-- **Skenovat foto** (experimental, between `EXPERIMENTAL: Skenovat foto` and `end of Skenovat foto`):
-  pure-JS canvas detector `scanDetect()` (`scan-core:start/end`) finds columns of boxes (square party box
-  above ~2:1 candidate boxes) and ink per box. Then:
-  - `scanGuess()` picks which parties are on the photo by matching detected box counts per column to
-    the known candidate counts (65+65 pages are ambiguous → prefers the page after the previously
-    applied one, `scanNext`, and offers alternatives as chips);
+- **Vyfotit lístek** (photo recognition, between `Rozpoznání lístku z fotek` and its `end of` marker):
+  the user adds up to 8 photos of ballot pages (`scanPhotos`, camera input `#scanFile` or gallery
+  `#scanGallery`), then **Vyhodnotit** runs `scanDetectFile()` on each photo that has no result yet.
+  - `scanDetect()` (`scan-core:start/end`, pure-JS canvas) finds columns of boxes (square party box
+    above ~2:1 candidate boxes) and the ink in each box;
+  - `scanCosts()` scores every possible left-column party per photo by matching detected box counts
+    per column to the known candidate counts;
+  - `scanAssign()` picks the parties for all photos jointly (DP): ties (65+65 pages) are resolved by
+    assuming photos follow each other in ballot order, starting at party 1 or after the page applied
+    last (`scanNext`); overlap with the previous photo is penalised; a user's choice (chip/select,
+    `ph.manual`) is fixed and moves the guesses of the other photos;
   - `scanKeep()` reconciles each column with the party's candidate count: drops fake boxes at paper
     folds (alone in a wide gap, flat), interpolates boxes the detector missed (gap of 2–3 pitches),
     swaps the two when both occur;
-  - thresholds `SCAN_MARK` 0.08 / `SCAN_UNSURE` 0.035; unsure marks are never applied; "Použít" only
-    fills the draft, never saves a ballot.
+  - thresholds `SCAN_MARK` 0.08 / `SCAN_UNSURE` 0.035; unsure marks are never applied; the same party on
+    two photos → the later photo wins (warned); **Použít na lístek** only fills the draft, never saves.
   Real-world data so far: one blank photo of page 1 and one marked screenshot of the page with parties
   21–24 (fold between candidates 42/43). Real hand-drawn crosses are largely untested.
 

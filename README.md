@@ -12,9 +12,16 @@ Jednoduchá webová aplikace do telefonu pro okrskové volební komise: pomáhá
 
 Aplikace je jen pomůcka – závazný je zápis okrskové volební komise.
 
-## Skenovat foto (experiment)
+## Vyfotit lístek (rozpoznání křížků z fotek)
 
-Tlačítko **Skenovat foto** u pole pro kód předvyplní křížky z fotky jedné stránky lístku. Vyfoťte stránku zpředu, celé sloupce včetně políček stran, rovně a při dobrém světle, Aplikace sama odhadne, které strany na fotce jsou: zná pořadí stran na lístku a počet kandidátů každé z nich, takže posloupnost počtů políček ve sloupcích (např. 15 a 1 → strany 3–4) obvykle sedí jen na jedno místo. U stránek, kde mají všechny sloupce 65 kandidátů, je možností víc – aplikace vybere stránku navazující na předchozí fotku a nabídne ostatní jedním klepnutím. Stranu v **levém** sloupci lze vždy přepnout i ručně (další sloupce = další strany v pořadí). Počet políček ve sloupci se také srovná s počtem kandidátů strany: falešné políčko na přehybu papíru se vynechá (v náhledu šedě čárkovaně) a políčko, které rozpoznání přehlédlo, se doplní do mezery v pravidelné rozteči (v náhledu čárkovaně) – obojí aplikace vypíše, ať to zkontrolujete. Aplikace ukáže náhled s rozpoznanými políčky (zeleně prázdné, purpurově s křížkem, oranžově nejisté) a upozorní, když počet políček nesedí s počtem kandidátů. **Použít** přenese křížky na rozpracovaný lístek (jen u stran z fotky) – nic se neukládá, lístek zkontrolujete a uložíte jako obvykle. Rozpoznávání běží jen v telefonu (bez sítě) a je pomocné: nejisté křížky se nepřenášejí, vždy porovnejte s papírem.
+Tlačítko **Vyfotit lístek** nad lístkem předvyplní křížky z fotek stránek papírového lístku.
+
+1. Vyfoťte stránky lístku, na kterých jsou křížky (**Vyfotit stránku**, opakovaně), nebo je vyberte z galerie – **až 8 fotek** jednoho lístku. Každou stránku zvlášť: zpředu, celé sloupce včetně políček stran, rovně a při dobrém světle. Fotku lze křížkem v náhledu odebrat.
+2. Klepněte na **Vyhodnotit**. Rozpoznávání běží jen v telefonu (bez sítě).
+3. U každé fotky aplikace sama odhadne, které strany na ní jsou: zná pořadí stran na lístku a počet kandidátů každé z nich, takže posloupnost počtů políček ve sloupcích (např. 15 a 1 → strany 3–4) obvykle sedí jen na jedno místo. Stránky, kde mají všechny sloupce 65 kandidátů, vypadají stejně – tam aplikace předpokládá, že fotky jdou po sobě (další fotka navazuje na předchozí), a ostatní možnosti nabídne jedním klepnutím. Ruční volba strany u jedné fotky posune odhad u dalších.
+4. Počet políček ve sloupci se srovná s počtem kandidátů strany: falešné políčko na přehybu papíru se vynechá (v náhledu šedě čárkovaně) a políčko, které rozpoznání přehlédlo, se doplní do mezery v pravidelné rozteči (v náhledu čárkovaně) – obojí aplikace vypíše, ať to zkontrolujete.
+5. Náhled ukazuje rozpoznaná políčka: zeleně prázdná, purpurově s křížkem, oranžově nejistá (ta se nepřenášejí). Je-li stejná strana na dvou fotkách, platí pozdější fotka.
+6. **Použít na lístek** přenese křížky na rozpracovaný lístek (jen u stran z fotek) – nic se neukládá. Lístek zkontrolujete s papírem a uložíte jako obvykle.
 
 ## Zveřejnění na GitHub Pages
 
@@ -54,7 +61,7 @@ npm test
 node tests/app.test.js záloha
 ```
 
-Testy funkce Skenovat foto (kreslí si vlastní syntetické fotky lístku s křížky, natočené, tmavší i zmenšené):
+Testy rozpoznání z fotek (kreslí si vlastní syntetické fotky lístku s křížky, natočené, tmavší i zmenšené):
 
 ```sh
 npm run test:scan

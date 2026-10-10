@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Tests for the experimental "Skenovat foto" feature, driven through Playwright + Chromium.
+/* Tests for "Vyfotit lístek" (recognising crosses from photos of ballot pages), driven through Playwright + Chromium.
    Run: npm run test:scan   (or: node tests/scan.test.js)
    No image files needed: each test draws a synthetic photo of a ballot page (two columns =
    parties 1 and 2 of the built-in list, 10 and 3 candidates), adds pencil crosses, rotates it,
@@ -87,16 +87,28 @@ async function photo(page, marks, v = {}) {
 }
 
 let shot = 0;
-async function scan(page, b64) {
+// the result of the last photo in the scan panel
+const LAST = '#scanPages .scan-page:last-child';
+async function addPhoto(page, b64) {
   // SCAN_SAVE=<dir>: keep the generated photos and the overlay previews for inspection
   if (process.env.SCAN_SAVE) require('fs').writeFileSync(path.join(process.env.SCAN_SAVE, `photo-${++shot}.jpg`), Buffer.from(b64, 'base64'));
-  await page.evaluate(() => { delete document.getElementById('scanPanel')._scan; });
   if (await page.isHidden('#scanPanel')) await page.click('#scanOpen');
   await page.setInputFiles('#scanFile', { name: 'foto.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(b64, 'base64') });
-  await page.waitForFunction(() => document.getElementById('scanPanel')._scan || /bad/.test(document.getElementById('scanMsg').className));
-  if (process.env.SCAN_SAVE) await (await page.$('#scanCanvas')).screenshot({ path: path.join(process.env.SCAN_SAVE, `overlay-${shot}.png`) });
-  return page.$$eval('#scanSum li[data-p]', els => Object.fromEntries(els.filter(e => e.dataset.p).map(e => [e.dataset.p,
-    { party: e.dataset.party === '1', cands: e.dataset.cands ? e.dataset.cands.split(',').map(Number) : [], boxes: +e.dataset.boxes }])));
+}
+async function run(page) {
+  await page.evaluate(() => { delete document.getElementById('scanPanel')._scan; });
+  await page.click('#scanRun');
+  await page.waitForFunction(() => document.getElementById('scanPanel')._scan);
+}
+const parseSum = sel => page => page.$$eval(sel, els => Object.fromEntries(els.filter(e => e.dataset.p).map(e => [e.dataset.p,
+  { party: e.dataset.party === '1', cands: e.dataset.cands ? e.dataset.cands.split(',').map(Number) : [], boxes: +e.dataset.boxes }])));
+// one photo: drop the photos already in the panel, add this one, evaluate, return the summary
+async function scan(page, b64) {
+  while (await page.$('#scanThumbs [data-del]')) await page.click('#scanThumbs [data-del]');
+  await addPhoto(page, b64);
+  await run(page);
+  if (process.env.SCAN_SAVE && await page.$(`${LAST} canvas`)) await (await page.$(`${LAST} canvas`)).screenshot({ path: path.join(process.env.SCAN_SAVE, `overlay-${shot}.png`) });
+  return parseSum(`${LAST} .scan-sum li[data-p]`)(page);
 }
 
 function expectScan(got, exp) {
@@ -135,18 +147,18 @@ test('Použít: přenese křížky na lístek, nic neuloží', async page => {
 });
 test('levý sloupec ručně přepnut na jinou stranu: varování o počtu políček', async page => {
   await scan(page, await photo(page, ['1:1'], { seed: 8 }));
-  assert.equal(await page.inputValue('#scanFirst'), '1');
-  await page.selectOption('#scanFirst', '2');
-  assert.match(await page.textContent('#scanSum'), /kandidátů je jen 3/);
-  assert.equal(await page.getAttribute('#scanGuess .msg', 'data-status'), 'manual');
+  assert.equal(await page.inputValue(`${LAST} .scan-first`), '1');
+  await page.selectOption(`${LAST} .scan-first`, '2');
+  assert.match(await page.textContent(`${LAST} .scan-sum`), /kandidátů je jen 3/);
+  assert.equal(await page.getAttribute(`${LAST} .scan-guess .msg`, 'data-status'), 'manual');
 });
 
 /* guessing the parties from the number of boxes per column (the built-in 2026 list) */
 const guess = async page => ({
-  first: await page.inputValue('#scanFirst'),
-  status: await page.getAttribute('#scanGuess .msg', 'data-status'),
-  chips: await page.$$eval('#scanGuess [data-s]', els => els.map(e => e.textContent)),
-  sum: await page.textContent('#scanSum')
+  first: await page.inputValue(`${LAST} .scan-first`),
+  status: await page.getAttribute(`${LAST} .scan-guess .msg`, 'data-status'),
+  chips: await page.$$eval(`${LAST} .scan-guess [data-s]`, els => els.map(e => e.textContent)),
+  sum: await page.textContent(`${LAST} .scan-sum`)
 });
 test('odhad stran: 10 a 3 políčka → strany 1–2', async page => {
   await scan(page, await photo(page, [], { seed: 9 }));
@@ -174,7 +186,7 @@ test('odhad stran: 65 a 65 políček je víc možností – nabídka a navázán
   assert.equal(g.status, 'ambiguous');
   assert.equal(g.first, '9'); // nothing on the ballot yet → the first such page
   for (const r of ['9–10', '10–11', '14–15', '15–16', '18–19', '19–20']) assert.ok(g.chips.includes(r), `nabídka ${r}`);
-  await page.click('#scanGuess [data-s="13"]'); // tap 14–15
+  await page.click(`${LAST} .scan-guess [data-s="13"]`); // tap 14–15
   g = await guess(page);
   assert.equal(g.first, '14');
   // a page 12–13 applied first → the next 65+65 page is guessed as 14–15
@@ -183,19 +195,19 @@ test('odhad stran: 65 a 65 políček je víc možností – nabídka a navázán
   await scan(page, await photo(page, [], { seed: 14, cols: [65, 65] }));
   g = await guess(page);
   assert.deepEqual([g.first, g.status], ['14', 'ambiguous']);
-  assert.match(await page.textContent('#scanGuess'), /navazuje na předchozí stránku/);
+  assert.match(await page.textContent(`${LAST} .scan-guess`), /navazuje na předchozí stránku/);
 });
 
 /* the ballot is folded between candidates 42 and 43 (as on the real Prague ballot, page with parties 21–24) */
 const FOLD = { cols: [65, 41], pitch: 19.5 };
 test('přehyb: falešné políčko na přehybu se vynechá, kandidáti pod přehybem sedí', async page => {
   const got = await scan(page, await photo(page, ['1:42', '1:45', '2:41'], { ...FOLD, seed: 1, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -4, fakeAt: 6 } }));
-  assert.equal(await page.inputValue('#scanFirst'), '22');
+  assert.equal(await page.inputValue(`${LAST} .scan-first`), '22');
   assert.deepEqual(got['22'].cands, [42, 45]);
   assert.deepEqual(got['23'].cands, [41]);
   assert.equal(got['22'].boxes, 65);
   assert.equal(got['23'].boxes, 41);
-  assert.match(await page.textContent('#scanSum'), /Vynecháno 1 falešné políčko/);
+  assert.match(await page.textContent(`${LAST} .scan-sum`), /Vynecháno 1 falešné políčko/);
 });
 test('přehyb: přehlédnuté políčko se doplní, kandidáti pod ním sedí', async page => {
   const got = await scan(page, await photo(page, ['1:42', '1:45', '2:41'], { ...FOLD, seed: 1, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -10, fakeAt: 10 } }));
@@ -207,6 +219,72 @@ test('přehyb, natočená fotka', async page => {
   assert.deepEqual(got['22'].cands, [42, 43, 65]);
   assert.equal(got['23'].party, true);
   assert.deepEqual([got['22'].boxes, got['23'].boxes], [65, 41]);
+});
+
+/* several photos of one ballot, evaluated together */
+const PAGE = i => `#scanPages .scan-page[data-i="${i}"]`;
+const pageGuess = async (page, i) => ({
+  first: await page.inputValue(`${PAGE(i)} .scan-first`),
+  status: await page.getAttribute(`${PAGE(i)} .scan-guess .msg`, 'data-status'),
+  text: await page.textContent(`${PAGE(i)} .scan-guess`),
+  sum: await parseSum(`${PAGE(i)} .scan-sum li[data-p]`)(page)
+});
+test('více fotek: tři stránky najednou, Použít přenese křížky ze všech', async page => {
+  await addPhoto(page, await photo(page, ['1:P', '2:2'], { seed: 21 }));
+  await addPhoto(page, await photo(page, ['1:15'], { seed: 22, cols: [15, 1], rot: 2 }));
+  await addPhoto(page, await photo(page, ['1:3', '2:P'], { seed: 23, cols: [65, 4], rot: -2 }));
+  assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 3);
+  assert.match(await page.textContent('#scanRun'), /3 fotky/);
+  await run(page);
+  const g = [await pageGuess(page, 0), await pageGuess(page, 1), await pageGuess(page, 2)];
+  assert.deepEqual(g.map(x => [x.first, x.status]), [['1', 'sure'], ['3', 'sure'], ['5', 'sure']]);
+  assert.deepEqual(g[0].sum['1'], { party: true, cands: [], boxes: 10 });
+  assert.deepEqual(g[0].sum['2'].cands, [2]);
+  assert.deepEqual(g[1].sum['3'].cands, [15]);
+  assert.deepEqual(g[2].sum['5'].cands, [3]);
+  assert.equal(g[2].sum['6'].party, true);
+  assert.match(await page.textContent('#scanThumbs'), /strany 1–2[\s\S]*strany 3–4[\s\S]*strany 5–6/);
+  await page.click('#scanApply');
+  assert.ok(await page.isHidden('#scanPanel'));
+  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'));
+  assert.deepEqual(d.parties.sort((a, b) => a - b), [1, 6]);
+  assert.deepEqual(d.cands.sort(), ['2:2', '3:15', '5:3']);
+  assert.match(await page.textContent('#status'), /Neplatný/); // two parties marked – the rules still apply
+  await page.click('#scanOpen');
+  assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 0); // photos are cleared after use
+});
+test('více fotek: nejednoznačné stránky 65+65 navazují, ruční volba posune další fotku', async page => {
+  await addPhoto(page, await photo(page, [], { seed: 24, cols: [65, 65] }));
+  await addPhoto(page, await photo(page, [], { seed: 25, cols: [65, 65], rot: 1 }));
+  await run(page);
+  let a = await pageGuess(page, 0), b = await pageGuess(page, 1);
+  assert.deepEqual([a.first, a.status, b.first, b.status], ['9', 'ambiguous', '11', 'ambiguous']);
+  assert.match(b.text, /navazuje na předchozí fotku/);
+  await page.click(`${PAGE(0)} .scan-guess [data-s="13"]`); // the first photo is 14–15
+  a = await pageGuess(page, 0); b = await pageGuess(page, 1);
+  assert.deepEqual([a.first, a.status, b.first], ['14', 'manual', '18']); // 16–17 is not a 65+65 page → next one, 18–19
+});
+test('více fotek: nejvýš 8, odebrání fotky', async page => {
+  const b64 = await photo(page, [], { seed: 26, scale: 0.4 });
+  await page.click('#scanOpen');
+  await page.setInputFiles('#scanGallery', Array.from({ length: 9 }, (_, i) => ({ name: `f${i}.jpg`, mimeType: 'image/jpeg', buffer: Buffer.from(b64, 'base64') })));
+  assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 8);
+  assert.match(await page.textContent('#scanMsg'), /nejvýše 8 fotek – 1 se nepřidalo/);
+  assert.ok(await page.isDisabled('#scanFile'));
+  await page.click('#scanThumbs [data-del="0"]');
+  assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 7);
+  assert.ok(!(await page.isDisabled('#scanFile')));
+});
+test('více fotek: stejná stránka dvakrát – platí pozdější fotka', async page => {
+  await addPhoto(page, await photo(page, ['1:1'], { seed: 27 }));
+  await addPhoto(page, await photo(page, ['1:2'], { seed: 28, rot: 1 }));
+  await run(page);
+  const b = await pageGuess(page, 1);
+  assert.equal(b.first, '1');
+  assert.match(await page.textContent(`${PAGE(1)} .scan-sum`), /Strana 1 je i na fotce 1 – použije se tato/);
+  await page.click('#scanApply');
+  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'));
+  assert.deepEqual(d.cands, ['1:2']);
 });
 
 (async () => {
