@@ -239,25 +239,21 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
     .scan-page h3 { margin: 0; font-size: 15px; }
     .scan-page .row > label { flex: 1 1 100%; font-size: 13px; font-weight: 600; }
     .scan-view { overflow: auto; max-height: 70vh; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper); cursor: zoom-in; }
-    .scan-view canvas { display: block; width: 100%; height: auto; }
+    .scan-view img { display: block; width: 100%; max-width: none; height: auto; }
     .scan-view.zoom { cursor: zoom-out; }
-    .scan-view.zoom canvas { width: 250%; }
+    .scan-view.zoom img { width: 250%; }
     .scan-sum { list-style: none; margin: 0; padding: 0; font-size: 14px; }
     .scan-sum li { padding: 6px 0; }
     .scan-sum li + li { border-top: 1px dashed var(--rule); }
     .scan-sum .w { display: block; color: var(--warn); font-size: 13px; }
     .scan .actions2 { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-    .scan-guess { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-    .scan-guess:empty { display: none; }
-    .scan-guess .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .scan-guess .chips .btn[aria-pressed="true"] { background: var(--stripe); border-color: var(--stripe); color: #fff; }
     </style>
     <div class="scan-open">
       <button class="btn primary" id="scanOpen" type="button" aria-expanded="false" aria-controls="scanPanel">Vyfotit lístek</button>
       <span class="hint">Křížky se rozpoznají z fotek stránek lístku (až 8 fotek).</span>
     </div>
     <section class="scan" id="scanPanel" hidden aria-label="Rozpoznat lístek z fotek">
-      <p class="hint">Vyfoťte stránky lístku s křížky, každou stránku zvlášť: zpředu, celé sloupce včetně políček stran, rovně a při dobrém světle. Až 8 fotek, pak klepněte na Vyhodnotit. Strany se na fotkách poznají podle počtu políček. Nic se neukládá – výsledek přenesete na lístek, zkontrolujete a uložíte jako obvykle.</p>
+      <p class="hint">Vyfoťte stránky lístku s křížky, každou stránku zvlášť: zpředu, celé sloupce včetně políček stran, rovně a při dobrém světle. Až 8 fotek, pak klepněte na Vyhodnotit. Fotky čte skript ballot.py (Python s OpenCV přímo v telefonu) – poprvé se stáhne asi 65 MB, je potřeba internet. Strany se poznají podle počtu políček. Nic se neukládá – výsledek přenesete na lístek, zkontrolujete a uložíte jako obvykle.</p>
       <div class="scan-thumbs" id="scanThumbs"></div>
       <div class="scan-add">
         <label class="btn pick" id="scanCamLbl">Vyfotit stránku<input id="scanFile" type="file" accept="image/*" capture="environment"></label>
@@ -1480,6 +1476,275 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
 64. Josef Kroka, 53 let, správce budov, Praha 2, SEN 21, BEZPP
 65. David Štěrbáček, 51 let, programový manažer, člen spolku Zelené Roztyly, Praha 11, HPP 11, BEZPP
 </script>
+<!-- ballot.py from the repo, verbatim (tools/embed-ballot.py copies it here) – run under Pyodide by "Vyfotit lístek" -->
+<script type="text/plain" id="ballot-py">
+"""Read a photo of a Czech municipal-election ballot and print the marked parties and candidates.
+
+Usage:
+    python ballot.py sample.jpg [--annotate checked.jpg] [--first-party 21]
+
+How it works:
+  1. threshold the photo and find the big rectangular frames - one per party column,
+  2. straighten every column with a perspective warp and threshold it again,
+  3. find the check boxes (party box on top, then one box per candidate) and measure
+     how much ink there is inside each of them,
+  4. work out which parties the columns belong to by comparing the number of candidate
+     boxes with the official candidate list (columns are expected left to right in
+     ballot order; use --first-party if the counts are not distinctive enough).
+
+A column where the number of boxes found differs from the candidate list is reported as
+"NOT READ" instead of guessing which candidate a mark belongs to.
+"""
+import argparse
+import json
+import sys
+import urllib.request
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+CANDIDATES_URL = ("https://www.seznamzpravy.cz/p/vysledky-voleb/2026/komunalni-volby"
+                  "/obec/554782-praha/kandidati")
+CANDIDATES_FILE = Path(__file__).with_name("candidates.json")
+
+COL_W = 640       # width every party column is rectified to; box sizes are relative to it
+MARGIN = 32       # border kept around a rectified column, the paper is never perfectly flat
+MARK_FILL = 0.05  # share of ink pixels in the middle of a box that makes it "marked"
+
+
+def load_parties():
+    """Return [{"number", "name", "candidates": [name of no. 1, ...]}, ...]; downloaded on first use."""
+    if not CANDIDATES_FILE.exists():
+        parties = download_parties()
+        CANDIDATES_FILE.write_text(json.dumps(parties, ensure_ascii=False, indent=1), encoding="utf-8")
+    return json.loads(CANDIDATES_FILE.read_text(encoding="utf-8"))
+
+
+def download_parties():
+    request = urllib.request.Request(CANDIDATES_URL, headers={"User-Agent": "Mozilla/5.0"})
+    html = urllib.request.urlopen(request, timeout=30).read().decode("utf-8")
+    # the page carries its data as one JSON object assigned to $IMA.Cache
+    start = html.index("$IMA.Cache = ") + len("$IMA.Cache = ")
+    cache, _ = json.JSONDecoder().raw_decode(html, start)
+    widget = next(value for key, value in cache.items() if "/widgets/communal/" in key)
+    electorate = widget["value"]["body"]["state"]["candidates"]["electorates"][0]
+
+    def full_name(c):
+        name = " ".join(filter(None, [c["titleBefore"], c["name"], c["surname"]]))
+        return f"{name}, {c['titleAfter']}" if c["titleAfter"] else name
+
+    def names(candidates):
+        # indexed by ballot number - 1; a number missing from the list stays None
+        by_number = {c["orderNum"]: full_name(c) for c in candidates}
+        return [by_number.get(number) for number in range(1, max(by_number) + 1)]
+
+    return [{"number": party["orderNum"],
+             "name": party["shortName30"],
+             "candidates": names(party["candidates"])}
+            for party in sorted(electorate["parties"], key=lambda p: p["orderNum"])]
+
+
+def binarize(gray, block, strength):
+    """Adaptive threshold; ink becomes white (255) and paper black.
+
+    A pixel is ink when it is darker than its neighbourhood by `strength` times the
+    contrast between paper and print, so dim or washed-out photos work as well.
+    """
+    paper, ink = np.percentile(gray, [50, 2])
+    gray = cv2.GaussianBlur(gray, (3, 3), 0)
+    return cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                 cv2.THRESH_BINARY_INV, block | 1, strength * (paper - ink))
+
+
+def find_columns(gray):
+    """Find the frames around the party columns; return (contour, corners) left to right."""
+    ink = binarize(gray, min(gray.shape) // 70, 0.09)
+    ink = cv2.morphologyEx(ink, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))  # bridge gaps in lines
+    contours, _ = cv2.findContours(ink, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    contours = [contour for contour in contours if cv2.contourArea(contour) > 0.01 * gray.size]
+    columns = []
+    for contour in sorted(contours, key=cv2.contourArea):
+        # the convex hull ignores notches left by boxes or text that touch the frame line
+        hull = cv2.convexHull(contour)
+        quad = cv2.approxPolyDP(hull, 0.02 * cv2.arcLength(hull, True), True).reshape(-1, 2)
+        if len(quad) != 4 or cv2.contourArea(contour) < 0.8 * cv2.contourArea(hull):
+            continue
+        # order the corners: top-left, top-right, bottom-right, bottom-left
+        s, d = quad.sum(axis=1), quad[:, 0] - quad[:, 1]
+        corners = np.float32([quad[s.argmin()], quad[d.argmax()], quad[s.argmax()], quad[d.argmin()]])
+        # A frame shows up twice, as the inner and the outer edge of its line - keep the
+        # outer one. A bigger rectangle around several frames (the sheet) is not a column.
+        enclosed = [i for i, (_, other) in enumerate(columns)
+                    if cv2.pointPolygonTest(contour, tuple(map(float, other.mean(axis=0))), False) > 0]
+        if not enclosed:
+            columns.append((contour, corners))
+        elif len(enclosed) == 1 and cv2.contourArea(contour) < 1.3 * cv2.contourArea(columns[enclosed[0]][0]):
+            columns[enclosed[0]] = (contour, corners)
+    return sorted(columns, key=lambda column: column[1][:, 0].mean())
+
+
+def rectify(gray, contour, corners):
+    """Warp one column upright; return its binary image (without the frame) and the transform."""
+    tl, tr, br, bl = corners
+    width = np.linalg.norm(tr - tl) + np.linalg.norm(br - bl)
+    height = np.linalg.norm(bl - tl) + np.linalg.norm(br - tr)
+    col_h = round(COL_W * height / width)
+    target = np.float32([[0, 0], [COL_W, 0], [COL_W, col_h], [0, col_h]]) + MARGIN
+    transform = cv2.getPerspectiveTransform(corners, target)
+    size = (COL_W + 2 * MARGIN, col_h + 2 * MARGIN)
+
+    column = cv2.warpPerspective(gray, transform, size, flags=cv2.INTER_CUBIC,
+                                 borderMode=cv2.BORDER_REPLICATE)
+    ink = binarize(column, 51, 0.22)
+    # Keep only what lies inside the frame. Closing the mask fills the notches (see
+    # find_columns), eroding it removes the frame line itself.
+    inside = np.zeros_like(gray)
+    cv2.drawContours(inside, [contour], -1, 255, cv2.FILLED)
+    inside = cv2.warpPerspective(inside, transform, size, flags=cv2.INTER_NEAREST)
+    pad = int(0.15 * COL_W)  # wider than a box, so that no notch survives
+    inside = cv2.copyMakeBorder(inside, pad, pad, pad, pad, cv2.BORDER_CONSTANT)
+    inside = cv2.morphologyEx(inside, cv2.MORPH_CLOSE, np.ones((pad, pad), np.uint8))[pad:-pad, pad:-pad]
+    inside = cv2.erode(inside, np.ones((11, 11), np.uint8))
+    return cv2.bitwise_and(ink, inside), transform
+
+
+def find_boxes(ink):
+    """Return the check boxes (x, y, w, h) of a rectified column, top to bottom."""
+    # Fill every closed shape: a box turns into a solid blob whether it is crossed or not,
+    # while text stays thin strokes. (The size limit skips a frame that was not removed.)
+    ink = cv2.morphologyEx(ink, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    contours, _ = cv2.findContours(ink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    filled = np.zeros_like(ink)
+    for contour in contours:
+        if max(cv2.boundingRect(contour)[2:]) < 0.5 * COL_W:
+            cv2.drawContours(filled, [contour], -1, 255, cv2.FILLED)
+    # Opening with a kernel of half a candidate box removes everything but the solid blobs,
+    # including the strokes of a cross that stick out of its box.
+    kernel = np.ones((int(0.025 * COL_W), int(0.05 * COL_W)), np.uint8)
+    solid = cv2.morphologyEx(filled, cv2.MORPH_OPEN, kernel)
+    contours, _ = cv2.findContours(solid, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    boxes = [cv2.boundingRect(contour) for contour in contours]
+    boxes = [(x, y, w, h) for x, y, w, h in boxes
+             if w < 0.16 * COL_W and h < 0.16 * COL_W and x + w / 2 < MARGIN + 0.2 * COL_W]
+    return sorted(boxes, key=lambda box: box[1])
+
+
+def fill_ratio(ink, box):
+    """Share of ink pixels in the central part of a box (the outline is left out)."""
+    x, y, w, h = box
+    centre = ink[y + h // 4:y + h - h // 4, x + w // 5:x + w - w // 5]
+    return cv2.countNonZero(centre) / centre.size
+
+
+def identify_parties(counts, parties, first_party=None):
+    """Return the run of consecutive parties whose candidate counts fit the boxes found."""
+    if first_party is not None:
+        start = next((i for i, party in enumerate(parties) if party["number"] == first_party), None)
+        if start is None or start + len(counts) > len(parties):
+            sys.exit(f"--first-party {first_party} does not fit {len(counts)} columns")
+    else:
+        costs = [sum(abs(len(party["candidates"]) - count)
+                     for party, count in zip(parties[i:i + len(counts)], counts))
+                 for i in range(len(parties) - len(counts) + 1)]
+        if not costs or costs.count(min(costs)) > 1:
+            sys.exit(f"cannot tell the parties from the box counts {counts}, use --first-party")
+        start = costs.index(min(costs))
+    return parties[start:start + len(counts)]
+
+
+def read_ballot(path, parties, first_party=None, annotate=None):
+    """Return [(party, marks)] per column; marks[0] is the party box, marks[n] candidate n."""
+    image = cv2.imdecode(np.fromfile(path, np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        sys.exit(f"cannot read image {path}")
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    columns = []  # (area of the frame, marks of its boxes) for every frame found
+    for contour, corners in find_columns(gray):
+        ink, transform = rectify(gray, contour, corners)
+        boxes = find_boxes(ink)
+        marks = [fill_ratio(ink, box) > MARK_FILL for box in boxes]
+        columns.append((cv2.contourArea(contour), marks))
+
+        for (x, y, w, h), marked in zip(boxes, marks):
+            outline = np.float32([[[x, y], [x + w, y], [x + w, y + h], [x, y + h]]])
+            outline = cv2.perspectiveTransform(outline, np.linalg.inv(transform))
+            cv2.polylines(image, [np.int32(outline)], True, (0, 0, 255) if marked else (0, 170, 0), 2)
+
+    # A frame without boxes is some other rectangle in the photo - unless it is as large
+    # as the party columns: then it is a column that could not be read.
+    typical = np.median([area for area, marks in columns if len(marks) > 1] or [0])
+    columns = [marks for area, marks in columns if len(marks) > 1 or 0.5 * typical < area < 2 * typical]
+
+    if annotate:
+        cv2.imencode(Path(annotate).suffix, image)[1].tofile(annotate)
+    if not columns:
+        sys.exit(f"{path}: no party columns found")
+
+    found = identify_parties([max(len(marks) - 1, 0) for marks in columns], parties, first_party)
+    return list(zip(found, columns))
+
+
+def print_result(columns):
+    # A column with a wrong number of boxes was not read properly (a box was missed or
+    # something else taken for one): its numbering cannot be trusted, so it is only reported.
+    def readable(column):
+        party, marks = column
+        return len(marks) - 1 == len(party["candidates"])
+
+    unreadable = [column for column in columns if not readable(column)]
+    columns = [column for column in columns if readable(column)]
+
+    selected = [party for party, marks in columns if marks[0]]
+    print("Selected parties:")
+    for party in selected:
+        print(f"  {party['number']:>2}  {party['name']}")
+    if not selected:
+        print("  none")
+
+    print("Selected candidates:")
+    with_candidates = [(party, marks) for party, marks in columns if any(marks[1:])]
+    for party, marks in with_candidates:
+        ignored = "  (party selected - marks of its candidates do not count)" if marks[0] else ""
+        print(f"  {party['number']:>2}  {party['name']}{ignored}")
+        for number in range(1, len(marks)):
+            if marks[number]:
+                print(f"        {number:>2}. {party['candidates'][number - 1] or '(not in the candidate list)'}")
+    if not with_candidates:
+        print("  none")
+
+    if len(selected) > 1:
+        print(f"Note: {len(selected)} parties are marked - a ballot with more than one party marked is invalid.")
+    if unreadable:
+        print("NOT READ - check these by hand:")
+        for party, marks in unreadable:
+            print(f"  {party['number']:>2}  {party['name']}  "
+                  f"(found {max(len(marks) - 1, 0)} of {len(party['candidates'])} candidate boxes)")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Print the parties and candidates marked on a ballot photo.")
+    parser.add_argument("images", nargs="+", help="photo(s) of a ballot side")
+    parser.add_argument("--first-party", type=int, metavar="N",
+                        help="ballot number of the leftmost party in the photo (detected by default)")
+    parser.add_argument("--annotate", metavar="FILE",
+                        help="save a copy of the photo with the boxes outlined (red = marked)")
+    args = parser.parse_args()
+    if args.annotate and len(args.images) > 1:
+        parser.error("--annotate works with a single image")
+    sys.stdout.reconfigure(errors="replace")  # the names are Czech, the console may not be
+
+    parties = load_parties()
+    for path in args.images:
+        columns = read_ballot(path, parties, args.first_party, args.annotate)
+        print(f"{path}: parties {columns[0][0]['number']}-{columns[-1][0]['number']}")
+        print_result(columns)
+
+
+if __name__ == "__main__":
+    main()
+</script>
 <script>
 (() => {
 'use strict';
@@ -2029,731 +2294,48 @@ document.addEventListener('click', wake, { once: true });
 renderAll();
 
 /* ===================== Rozpoznání lístku z fotek =====================
-   Pre-fills the current selection from up to 8 photos of ballot pages. It never saves:
-   the marks are merged into `sel` and the user reviews them and taps Uložit as usual.
-   Pipeline (plain JS on a canvas): downscale → gray → adaptive threshold → long horizontal
-   runs = box top/bottom edges → pair edges with dark side edges into clean (slightly rotated)
-   rectangles = seeds → chain seeds into columns, estimate the box size from clean seeds →
-   fit each column's side lines (slope, perspective) → scan the column strip: rows dark at both
-   side lines, full-width rows = edges, pick boxes of the expected height (crosses can't split
-   or merge them) → the ~square box heading the most boxes = party box, the rest = candidates
-   1..n → share of dark pixels inside each box, border excluded (and in its centre). */
-/* scan-core:start */
-function scanDetect(g, gi, w, h) {
-  // g: max(R,G,B) – finds the black printed boxes and ignores the magenta stripe; gi: luminance – measures ink
-  const N = w * h, md = Math.max(w, h);
-  const med = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
-  // 1) adaptive threshold against the local paper brightness (90th percentile in blocks,
-  //    max over 3×3 blocks, interpolated) – robust to shadows and to dense ink nearby
-  const B = Math.max(8, Math.round(md / 80)), bw = Math.ceil(w / B), bh = Math.ceil(h / B);
-  const P = new Float32Array(bw * bh), P2 = new Float32Array(bw * bh), tmp = [];
-  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
-    tmp.length = 0;
-    for (let y = by * B; y < Math.min(h, by * B + B); y++) for (let x = bx * B; x < Math.min(w, bx * B + B); x++) tmp.push(g[y * w + x]);
-    tmp.sort((p, q) => p - q); P[by * bw + bx] = tmp[Math.floor(tmp.length * 0.9)];
-  }
-  for (let by = 0; by < bh; by++) for (let bx = 0; bx < bw; bx++) {
-    let mx = 0;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      const yy = by + dy, xx = bx + dx;
-      if (yy >= 0 && xx >= 0 && yy < bh && xx < bw && P[yy * bw + xx] > mx) mx = P[yy * bw + xx];
-    }
-    P2[by * bw + bx] = mx;
-  }
-  const dark = new Uint8Array(N);
-  for (let y = 0; y < h; y++) {
-    const fy = Math.min(bh - 1, Math.max(0, (y + 0.5) / B - 0.5)), y0 = Math.floor(fy), y1 = Math.min(bh - 1, y0 + 1), ty = fy - y0;
-    for (let x = 0; x < w; x++) {
-      const fx = Math.min(bw - 1, Math.max(0, (x + 0.5) / B - 0.5)), x0 = Math.floor(fx), x1 = Math.min(bw - 1, x0 + 1), tx = fx - x0;
-      const bg = (P2[y0 * bw + x0] * (1 - tx) + P2[y0 * bw + x1] * tx) * (1 - ty) + (P2[y1 * bw + x0] * (1 - tx) + P2[y1 * bw + x1] * tx) * ty;
-      const v = g[y * w + x];
-      if (v < bg * 0.8 && bg - v > 15) dark[y * w + x] = 1;
-    }
-  }
-  // 2) horizontal edge pixels: long runs (1px gaps tolerated) in a 3-row band, so tilted thin lines count too
-  const Lh = Math.max(8, Math.round(md * 0.009)), Hm = new Uint8Array(N);
-  for (let y = 0; y < h; y++) {
-    const row = y * w, up = Math.max(0, y - 1) * w, dn = Math.min(h - 1, y + 1) * w;
-    let s = -1, last = -9;
-    const flush = () => { if (s >= 0 && last - s + 1 >= Lh) for (let x = s; x <= last; x++) if (dark[row + x]) Hm[row + x] = 1; };
-    for (let x = 0; x < w; x++) if (dark[row + x] || dark[up + x] || dark[dn + x]) { if (x - last > 2) { flush(); s = x; } last = x; }
-    flush();
-  }
-  // 3) edge segments = connected components of Hm with a robust centre line: start from the
-  //    fullest row, refit on pixels near the line (drops pen strokes touching the edge), and keep
-  //    the longest gap-free stretch of inliers
-  const lab = new Uint8Array(N), stack = [], segs = [];
-  for (let i = 0; i < N; i++) {
-    if (!Hm[i] || lab[i]) continue;
-    const px = [];
-    lab[i] = 1; stack.push(i);
-    while (stack.length) {
-      const j = stack.pop(), x = j % w, y = (j - x) / w;
-      px.push(j);
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const xx = x + dx, yy = y + dy;
-        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
-        const k = yy * w + xx;
-        if (Hm[k] && !lab[k]) { lab[k] = 1; stack.push(k); }
-      }
-    }
-    if (px.length < Lh) continue;
-    const rows = new Map();
-    for (const j of px) { const y = (j / w) | 0; rows.set(y, (rows.get(y) || 0) + 1); }
-    let m = 0, c = [...rows].reduce((a, r) => r[1] > a[1] ? r : a)[0], inl = px;
-    for (const tol of [3, 2, 2]) {
-      const nx = px.filter(j => { const x = j % w; return Math.abs((j - x) / w - (m * x + c)) <= tol; });
-      if (nx.length < Lh) break;
-      inl = nx;
-      let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
-      for (const j of inl) { const x = j % w, y = (j - x) / w; n++; sx += x; sy += y; sxx += x * x; sxy += x * y; }
-      const den = n * sxx - sx * sx;
-      m = den ? (n * sxy - sx * sy) / den : 0; c = (sy - m * sx) / n;
-    }
-    let xa = w, xb = -1;
-    for (const j of inl) { const x = j % w; if (x < xa) xa = x; if (x > xb) xb = x; }
-    const occ = new Uint8Array(xb - xa + 1);
-    for (const j of inl) occ[j % w - xa] = 1;
-    let bs = 0, be = -1;
-    for (let k = 0, s0 = -1, last = -9; k <= occ.length; k++) {
-      if (k < occ.length && occ[k]) { if (k - last > 3) s0 = k; last = k; if (last - s0 > be - bs) { bs = s0; be = last; } }
-    }
-    const x0 = xa + bs, x1 = xa + be, len = x1 - x0 + 1;
-    let y0 = h, y1 = -1, n = 0;
-    for (const j of inl) { const x = j % w, y = (j - x) / w; if (x < x0 || x > x1) continue; n++; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-    segs.push({ x0, x1, y0, y1, len, m, c, t: n / len, yAt: x => m * x + c });
-  }
-  const S = segs.filter(s => s.len <= md * 0.12 && Math.abs(s.m) < 0.14 && (s.y1 - s.y0 + 1) <= 4 + s.len * 0.15 &&
-    s.x0 > 1 && s.y0 > 1 && s.x1 < w - 2 && s.y1 < h - 2);
-  S.forEach(s => { s.cy = s.yAt((s.x0 + s.x1) / 2); });
-  S.sort((a, b) => a.cy - b.cy);
-  const anyDark = (y, xa, xb) => { if (y < 0 || y >= h) return 0; for (let x = Math.max(0, xa); x <= Math.min(w - 1, xb); x++) if (dark[y * w + x]) return 1; return 0; };
-  // share of rows between edges a (top) and b (bottom) with a dark pixel within ±r of column x
-  const sideCov = (x, a, b, r) => {
-    let hit = 0, tot = 0;
-    for (let y = Math.ceil(a.yAt(x)) + 2; y <= Math.floor(b.yAt(x)) - 2; y++) { tot++; hit += anyDark(y, x - r, x + r); }
-    return tot ? hit / tot : 0;
-  };
-  // walk inwards from an edge end: a pen stroke can lengthen an edge segment, even up to a
-  // neighbouring frame line, so take the innermost dark vertical line near the end
-  const findSide = (x, dir, a, b, maxK) => {
-    const hits = [];
-    for (let k = 0; k <= maxK; k++) { const c = sideCov(x + dir * k, a, b, 1); if (c >= 0.7) hits.push([k, c]); }
-    if (!hits.length) return null;
-    let g = [hits[hits.length - 1]];
-    for (let i = hits.length - 2; i >= 0 && hits[i][0] === g[0][0] - 1; i--) g.unshift(hits[i]);
-    const best = Math.max(...g.map(q => q[1])), on = g.filter(q => q[1] >= best - 0.05);
-    return [x + dir * on.reduce((s, q) => s + q[0], 0) / on.length, best];
-  };
-  const mkBox = (q, t, m, extra) => {
-    const xs = q.map(p => p[0]), ys = q.map(p => p[1]);
-    return Object.assign({ q, t, m, x0: Math.floor(Math.min(...xs)), x1: Math.ceil(Math.max(...xs)), y0: Math.floor(Math.min(...ys)), y1: Math.ceil(Math.max(...ys)),
-      w: (q[1][0] - q[0][0] + q[2][0] - q[3][0]) / 2, h: (q[3][1] - q[0][1] + q[2][1] - q[1][1]) / 2,
-      cx: xs.reduce((a, b) => a + b) / 4, cy: ys.reduce((a, b) => a + b) / 4 }, extra);
-  };
-  // 4) seeds: a top edge + the nearest bottom edge of the same extent + dark left/right sides = clean box
-  const seeds = [];
-  for (let i = 0; i < S.length; i++) {
-    const a = S[i], aw = a.len;
-    for (let j = i + 1; j < S.length; j++) {
-      const b = S[j], dy = b.cy - a.cy;
-      if (dy < Math.max(5, aw * 0.2)) continue;
-      if (dy > aw * 1.6) break;
-      const ox0 = Math.max(a.x0, b.x0), ox1 = Math.min(a.x1, b.x1), ol = ox1 - ox0;
-      if (ol < Math.max(Lh, 0.6 * Math.min(aw, b.len))) continue;
-      const L = findSide(ox0, 1, a, b, ol * 0.3), Rt = L && findSide(ox1, -1, a, b, ol * 0.3);
-      if (!L || !Rt || Rt[0] - L[0] < Math.max(Lh, ol * 0.5)) continue;
-      const t = (a.t + b.t) / 2, xl = L[0], xr = Rt[0];
-      seeds.push(mkBox([[xl, a.yAt(xl)], [xr, a.yAt(xr)], [xr, b.yAt(xr)], [xl, b.yAt(xl)]], t, (a.m + b.m) / 2, { fit: L[1] + Rt[1] }));
-      break;
-    }
-  }
-  const kept = [];
-  seeds.sort((a, b) => b.fit - a.fit).forEach(b => {
-    if (!kept.some(k => Math.min(k.x1, b.x1) > Math.max(k.x0, b.x0) && Math.min(k.y1, b.y1) > Math.max(k.y0, b.y0))) kept.push(b);
-  });
-  // 5) chain seeds into columns (tolerating perspective drift)
-  kept.sort((a, b) => a.cy - b.cy);
-  let cols = [];
-  for (const b of kept) {
-    let best = null, bd = Infinity;
-    for (const c of cols) {
-      const l = c.seeds[c.seeds.length - 1], dx = Math.abs(b.q[0][0] - l.q[0][0]), dy = b.cy - l.cy;
-      if (dy > 0 && dx <= l.w * 0.3 + dy * 0.08 && dx < bd) { best = c; bd = dx; }
-    }
-    if (best) best.seeds.push(b); else cols.push({ seeds: [b] });
-  }
-  // typical candidate box (the party box is the first, taller one); boxes with a cross inside are
-  // left out when possible – a cross makes a seed taller or narrower
-  const fill = b => {
-    const m = Math.max(2, 0.2 * Math.min(b.w, b.h)); let n = 0, t = 0;
-    for (let y = Math.round(b.y0 + m); y <= b.y1 - m; y++) for (let x = Math.round(b.x0 + m); x <= b.x1 - m; x++, t++) n += dark[y * w + x];
-    return t ? n / t : 0;
-  };
-  kept.forEach(b => { b.fill = fill(b); });
-  const cw = [], chh = [];
-  for (const c of cols) if (c.seeds.length > 1) {
-    const [hd, ...r] = c.seeds, mh = med(r.map(b => b.h));
-    (hd.h >= mh * 1.3 ? r : c.seeds).forEach(b => { cw.push(b.w); chh.push(b.h); });
-  }
-  // clean seeds of the two known shapes: candidate box ≈ 2:1, party box ≈ square of the same width
-  const pool = cols.filter(c => c.seeds.length > 1).flatMap(c => c.seeds), clean = pool.filter(b => b.fill < 0.08);
-  const cc = clean.filter(b => b.h / b.w >= 0.35 && b.h / b.w < 0.7), ch = clean.filter(b => b.h / b.w >= 0.75 && b.h / b.w <= 1.3);
-  const W0 = med(cc.length + ch.length ? [...cc, ...ch].map(b => b.w) : cw.length ? cw : kept.map(b => b.w));
-  const H0 = cc.length >= 2 ? med(cc.map(b => b.h)) : ch.length ? W0 * 0.49 : med(chh.length ? chh : kept.map(b => b.h));
-  const rejected = [];
-  cols = cols.filter(c => {
-    const ok = c.seeds.some(b => Math.abs(b.w - W0) <= W0 * 0.2) && Math.abs(med(c.seeds.map(b => b.w)) - W0) <= W0 * 0.3;
-    if (!ok) rejected.push(...c.seeds);
-    return ok;
-  });
-  // 6) column model: x of the left/right box sides as a function of y, x = b_side + a·u (+ c·u²),
-  //    u = (y − yRef)/100, shared a, c; quadratic only for long columns (perspective / paper curl).
-  //    points = [y, x, side]; outliers (e.g. a seed widened by a cross) are dropped
-  const solve = A => {
-    const n = A.length;
-    for (let i = 0; i < n; i++) {
-      let p = i; for (let r = i + 1; r < n; r++) if (Math.abs(A[r][i]) > Math.abs(A[p][i])) p = r;
-      if (Math.abs(A[p][i]) < 1e-9) return null;
-      [A[i], A[p]] = [A[p], A[i]];
-      for (let r = 0; r < n; r++) if (r !== i) { const f = A[r][i] / A[i][i]; for (let k = i; k <= n; k++) A[r][k] -= f * A[i][k]; }
-    }
-    return A.map((row, i) => row[n] / row[i]);
-  };
-  const fitModel = (pts, quad) => {
-    let P = pts, M = null;
-    const yRef = pts.reduce((s, p) => s + p[0], 0) / (pts.length || 1);
-    for (let it = 0; it < 3; it++) {
-      const n = quad ? 4 : 3, A = Array.from({ length: n }, () => new Float64Array(n + 1));
-      for (const [y, x, k] of P) {
-        const u = (y - yRef) / 100, row = [k ? 0 : 1, k ? 1 : 0, u, u * u];
-        for (let i = 0; i < n; i++) { for (let j = 0; j < n; j++) A[i][j] += row[i] * row[j]; A[i][n] += row[i] * x; }
-      }
-      const z = solve(A); if (!z) return M;
-      M = { x: (k, y) => { const u = (y - yRef) / 100; return z[k] + z[2] * u + (quad ? z[3] * u * u : 0); }, a: z[2] / 100 };
-      const keep = P.filter(([y, x, k]) => Math.abs(M.x(k, y) - x) <= 2.5);
-      if (keep.length === P.length || keep.length < (quad ? 8 : 4)) break;
-      P = keep;
-    }
-    const ys = P.map(p => p[0]); M.y0 = Math.min(...ys); M.y1 = Math.max(...ys);
-    M.res = Math.max(...pts.map(([y, x, k]) => Math.abs(M.x(k, y) - x)));
-    return M;
-  };
-  const seedPts = b => [[b.q[0][1], b.q[0][0], 0], [b.q[3][1], b.q[3][0], 0], [b.q[1][1], b.q[1][0], 1], [b.q[2][1], b.q[2][0], 1]];
-  const typical = c => c.seeds.filter(b => Math.abs(b.w - W0) <= W0 * 0.12 && b.h <= H0 * 1.4);
-  const modelFor = (boxesUsed, pts) => {
-    const ys = boxesUsed.map(b => b.cy), span = Math.max(...ys) - Math.min(...ys);
-    if (boxesUsed.length < 2 || span < H0 * 0.9) return null;
-    return fitModel(pts, boxesUsed.length >= 4 && span >= H0 * 8);
-  };
-  // merge chains that lie on one column (a chain breaks e.g. on a rotated photo)
-  for (let again = true; again;) {
-    again = false;
-    for (let i = 0; i < cols.length && !again; i++) for (let j = i + 1; j < cols.length && !again; j++) {
-      const sa = typical(cols[i]), sb = typical(cols[j]);
-      if (!sa.length || !sb.length) continue;
-      const M = modelFor([...sa, ...sb], [...sa, ...sb].flatMap(seedPts));
-      if (!M || Math.abs(M.a) > 0.3 || M.res > 3) continue;
-      cols[i].seeds = [...cols[i].seeds, ...cols[j].seeds].sort((p, q) => p.cy - q.cy);
-      cols.splice(j, 1); again = true;
-    }
-  }
-  cols.forEach(c => {
-    const sd = typical(c);
-    c.M = modelFor(sd, sd.flatMap(seedPts));
-    c.m = med(c.seeds.map(b => b.m)); c.t = med(c.seeds.map(b => b.t));
-  });
-  const slopes = cols.filter(c => c.M).map(c => c.M.a);
-  const gSlope = slopes.length ? med(slopes) : 0;
-  // a straight model through the mean seed position with a given slope
-  const linModel = (pts, a) => {
-    const side = k => { const p = pts.filter(q => q[2] === k); return [p.reduce((s, q) => s + q[0], 0) / p.length, p.reduce((s, q) => s + q[1], 0) / p.length]; };
-    const [yl, xl0] = side(0), [yr, xr0] = side(1), ys = pts.map(p => p[0]);
-    return { x: (k, y) => k ? xr0 + a * (y - yr) : xl0 + a * (y - yl), a, y0: Math.min(...ys), y1: Math.max(...ys) };
-  };
-  // 7) scan each column strip: rows with dark pixels at both side lines = inside a box;
-  //    rows almost fully dark across the strip = top/bottom edges. Crosses don't break this.
-  const isDark = (x, y) => { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < w && y < h ? dark[y * w + x] : 0; };
-  // offset (−r…r) where cov(offset) is highest – centre of the plateau, 0 when nothing convincing
-  const snap = (cov, r) => {
-    const cs = []; for (let d = -r; d <= r; d++) cs.push([d, cov(d)]);
-    const best = Math.max(...cs.map(c => c[1])); if (best < 0.6) return [0, best];
-    const on = cs.filter(c => c[1] >= best - 0.05); return [on.reduce((s, c) => s + c[0], 0) / on.length, best];
-  };
-  // Hf(y): expected candidate box height (perspective makes it change along the column)
-  const scanStrip = (xl, xr, rAt, m, t, Hf) => {
-    const both = new Uint8Array(h), C = new Float32Array(h);
-    for (let y = 0; y < h; y++) {
-      const a = Math.round(xl(y)), b = Math.round(xr(y)), r = rAt(y);
-      if (a - r < 0 || b + r >= w || b - a < 4) continue;
-      both[y] = anyDark(y, a - r, a + r) && anyDark(y, b - r, b + r);
-      const xc = (a + b) / 2; let n = 0, d = 0;
-      for (let x = a; x <= b; x++) { const yy = Math.round(y + m * (x - xc)); if (yy < 0 || yy >= h) continue; n++; d += dark[yy * w + x]; }
-      C[y] = n ? d / n : 0;
-    }
-    const boxes = [];
-    let prevE = -9;
-    for (let y = 0; y < h;) {
-      if (!both[y]) { y++; continue; }
-      const s = y; let e = y;
-      for (;;) { if (e + 1 < h && both[e + 1]) e++; else if (e + 2 < h && both[e + 2]) e += 2; else break; }
-      y = e + 1;
-      const len = e - s + 1, H1 = Hf((s + e) / 2), k0 = Math.max(0, s - 2, prevE + 1);
-      if (len < H1 * 0.5) continue;
-      // edge bands inside / just around the run (not the bottom edge of the previous box)
-      const bands = [];
-      for (let k = k0; k <= Math.min(h - 1, e + 2); k++) {
-        if (C[k] < 0.6) continue;
-        const l = bands[bands.length - 1];
-        if (l && k - l.e <= 2) { l.e = k; l.sw += C[k]; l.sy += C[k] * k; l.mx = Math.max(l.mx, C[k]); }
-        else bands.push({ s: k, e: k, sw: C[k], sy: C[k] * k, mx: C[k] });
-      }
-      bands.forEach(bd => { bd.y = bd.sy / bd.sw; bd.pos = bd.e - bd.s >= 3 ? [bd.s + 1, bd.y, bd.e - 1] : [bd.y]; });
-      const top = bands[0], bot = bands[bands.length - 1];
-      // (a single band as high as a box: a box filled by a heavy cross on a small photo)
-      const solid = bd => bd.e - bd.s >= H1 * 0.6 && bd.e - bd.s <= H1 * 1.3;
-      if (!top || (top === bot && !solid(top)) || top.s > s + len * 0.35 || bot.e < e - len * 0.35) continue;
-      // choose boxes between edge bands: as many separate boxes of a plausible height as possible
-      // (candidate box ≈ H1, party box ≈ 2·H1), then the closest heights. A band thickened by a
-      // stroke also offers its outer rows. Inner bands must be (almost) full rows – the flat centre
-      // of a cross in the party box is not
-      const nodes = bands.flatMap((bd, bi) => bd === top || bd === bot || bd.mx >= 0.8 ? bd.pos.map(y => ({ bi, y })) : []); // in y order
-      const F = nodes.map(() => null); // best chain of boxes whose last box ends at node j
-      let bestEnd = null;
-      for (let j = 0; j < nodes.length; j++) {
-        for (let i = 0; i < j; i++) {
-          const bi = nodes[i].bi, same = bi === nodes[j].bi;
-          if (same && (!solid(bands[bi]) || nodes[i].y !== bands[bi].pos[0] || nodes[j].y !== bands[bi].pos[2])) continue;
-          const r = (nodes[j].y - nodes[i].y) / H1;
-          // party box: small bonus, so that a crossed party box is not taken for one candidate box
-          // made of its upper half (the centre of the cross looks like an edge) – unless it would
-          // swallow a whole box (two or more edges inside)
-          let inner = 0; for (let k = bi + 1; k < nodes[j].bi; k++) if (bands[k].mx >= 0.8) inner++;
-          const cost = r >= 0.78 && r <= 1.3 ? Math.abs(r - 1) : r >= 1.5 && r <= 2.8 ? 0.3 * Math.abs(r / 2 - 1) - (Math.abs(r / 2 - 1) < 0.15 ? 0.5 : 0) + 0.7 * Math.max(0, inner - 1) : NaN;
-          if (Number.isNaN(cost)) continue;
-          // previous box ends at an earlier band: on this ballot the boxes never touch, so a band is
-          // never both the bottom of one box and the top of the next
-          let prev = null; for (let k = 0; k < i && nodes[k].bi < bi; k++) if (F[k] && (!prev || F[k].sc > prev.sc)) prev = F[k];
-          const sc = (prev ? prev.sc : 0) + 10 - cost;
-          if (!F[j] || sc > F[j].sc) F[j] = { sc, bx: { yt: nodes[i].y, yb: nodes[j].y, be: nodes[j].bi }, prev };
-        }
-        if (F[j] && (!bestEnd || F[j].sc > bestEnd.sc)) bestEnd = F[j];
-      }
-      const chosen = [];
-      for (let q = bestEnd; q; q = q.prev) chosen.unshift(q.bx);
-      if (chosen.length) prevE = bands[chosen[chosen.length - 1].be].e;
-      for (const bx of chosen) {
-        let yt = bx.yt, yb = bx.yb;
-        // snap the predicted sides and edges onto the printed lines
-        const [dl, cl] = snap(d => { let n = 0, tot = 0; for (let y = Math.ceil(yt + 2); y <= yb - 2; y++, tot++) n += isDark(xl(y) + d, y); return tot ? n / tot : 0; }, 3);
-        const [dr, cr] = snap(d => { let n = 0, tot = 0; for (let y = Math.ceil(yt + 2); y <= yb - 2; y++, tot++) n += isDark(xr(y) + d, y); return tot ? n / tot : 0; }, 3);
-        const L = y => xl(y) + dl, Rr = y => xr(y) + dr, xc = (L(yt) + Rr(yt)) / 2;
-        const edge = y0 => snap(d => { let n = 0, tot = 0; for (let x = Math.ceil(L(y0) + 2); x <= Rr(y0) - 2; x++, tot++) n += isDark(x, y0 + d + m * (x - xc)); return tot ? n / tot : 0; }, 2)[0];
-        yt += edge(yt); yb += edge(yb);
-        if (yb - yt < H1 * 0.7) continue; // e.g. the gap between two boxes joined by cross strokes
-        const pt = (yy, xx) => [xx, yy + m * (xx - xc)], ym = (yt + yb) / 2;
-        boxes.push(mkBox([pt(yt, L(yt)), pt(yt, Rr(yt)), pt(yb, Rr(yb)), pt(yb, L(yb))], t, m,
-          { sp: cl >= 0.8 && cr >= 0.8 ? [[ym, L(ym), 0], [ym, Rr(ym), 1]] : null }));
-      }
-    }
-    return boxes;
-  };
-  const found = [];
-  for (const c of cols) {
-    // no clean candidate box: use seeds of the usual width (e.g. the party box), not ones narrowed by a cross
-    const sw = c.seeds.filter(b => Math.abs(b.w - W0) <= W0 * 0.15);
-    const sd = typical(c), seedP = (sd.length ? sd : sw.length ? sw : c.seeds).flatMap(seedPts), m = c.m;
-    const r0 = Math.max(3, Math.round(W0 * 0.1));
-    let M = c.M;
-    if (!M) {
-      // too few clean boxes for a slope (perspective differs per column): try slopes and keep
-      // the one along which most rows have dark pixels at both box sides
-      const sy0 = Math.min(...c.seeds.map(b => b.y0)), y0 = Math.max(0, Math.round(sy0 - H0 * 4)), y1 = Math.min(h - 1, Math.round(sy0 + H0 * 14));
-      let best = -1;
-      // slope near the other columns' one when known (one page, similar perspective)
-      const a0 = slopes.length ? gSlope : 0, ka = slopes.length ? 12 : 40;
-      for (let k = -ka; k <= ka; k++) {
-        const Mk = linModel(seedP, a0 + k * 0.005);
-        let n = 0;
-        for (let y = y0; y <= y1; y++) { const a = Math.round(Mk.x(0, y)), b = Math.round(Mk.x(1, y)); n += anyDark(y, a - 1, a + 1) && anyDark(y, b - 1, b + 1); }
-        if (n > best || (n === best && Math.abs(Mk.a - gSlope) < Math.abs(M.a - gSlope))) { best = n; M = Mk; }
-      }
-    }
-    // scan; then refit the model on the snapped sides of the boxes found and scan again
-    // (follows curved / perspective columns), side tolerance grows away from the fitted range
-    // the box height is refitted too (linear in y, within ±25 % of the typical one)
-    let boxes = [], Hf = () => H0;
-    for (let pass = 0; pass < 3; pass++) {
-      const Mp = M, Hp = Hf, rAt = y => Math.round(Math.min(W0 * 0.25, r0 + 0.05 * Math.max(0, Mp.y0 - y, y - Mp.y1)));
-      const bx = scanStrip(y => Mp.x(0, y), y => Mp.x(1, y), rAt, m, c.t, Hp);
-      if (pass && bx.length < boxes.length) break;
-      boxes = bx;
-      const good = boxes.filter(b => b.sp && Math.abs(b.w - W0) <= W0 * 0.12 && b.h <= Hp(b.cy) * 1.4);
-      const M2 = modelFor([...sd, ...good], [...seedP, ...good.flatMap(b => b.sp)]);
-      const hb = boxes.filter(b => b.sp && b.h >= Hp(b.cy) * 0.78 && b.h <= Hp(b.cy) * 1.3);
-      let H2 = Hp;
-      if (hb.length >= 2) {
-        const n = hb.length, my = hb.reduce((a, b) => a + b.cy, 0) / n, mh = hb.reduce((a, b) => a + b.h, 0) / n;
-        const syy = hb.reduce((a, b) => a + (b.cy - my) ** 2, 0), span = Math.max(...hb.map(b => b.cy)) - Math.min(...hb.map(b => b.cy));
-        const k = n >= 4 && span >= H0 * 4 ? hb.reduce((a, b) => a + (b.cy - my) * (b.h - mh), 0) / syy : 0;
-        H2 = y => Math.min(H0 * 1.25, Math.max(H0 * 0.8, mh + k * (y - my)));
-      }
-      const okM = M2 && M2.res <= W0 * 0.25;
-      if (!okM && boxes.every(b => Math.abs(H2(b.cy) - Hp(b.cy)) < H0 * 0.05)) break;
-      if (okM) M = M2;
-      Hf = H2;
-    }
-    const xl = y => M.x(0, y);
-    // keep the run of boxes connected to the seeds (gaps up to ~10 box heights)
-    const isAnchor = b => c.seeds.some(sd => b.cx > sd.x0 && b.cx < sd.x1 && b.cy > sd.y0 && b.cy < sd.y1);
-    const ai = boxes.map((b, i) => isAnchor(b) ? i : -1).filter(i => i >= 0);
-    let list;
-    if (!ai.length) list = c.seeds.slice();
-    else {
-      let lo = ai[0], hi = ai[ai.length - 1];
-      while (lo > 0 && boxes[lo].y0 - boxes[lo - 1].y1 <= H0 * 10) lo--;
-      while (hi < boxes.length - 1 && boxes[hi + 1].y0 - boxes[hi].y1 <= H0 * 10) hi++;
-      list = boxes.slice(lo, hi + 1);
-    }
-    // party box: the ~square box followed by the most candidate boxes (anything above it is header
-    // text or the edge of the photo); fall back to a seed above the list if the scan missed it
-    // A crossed candidate box can look like a square too (the strokes enlarge it), so take the topmost
-    // square box that heads a good run of candidate boxes, not simply the one heading the longest run.
-    const tall = b => b.h >= Hf(b.cy) * 1.5;
-    const runs = list.map((b, i) => {
-      if (!tall(b) || b.h / b.w < 0.6 || b.h / b.w > 1.5) return -1;
-      let n = 0; while (i + 1 + n < list.length && !tall(list[i + 1 + n])) n++;
-      return n;
-    });
-    const maxRun = Math.max(-1, ...runs);
-    const hi = maxRun < 0 ? -1 : runs.findIndex(n => n >= Math.min(maxRun, Math.max(3, maxRun * 0.25)));
-    if (hi > 0) rejected.push(...list.splice(0, hi));
-    let head = hi >= 0 ? list.shift() : list[0] && tall(list[0]) ? (rejected.push(list.shift()), null) : null;
-    if (!head) {
-      const hs = c.seeds.filter(sd => sd.h >= H0 * 1.3 && (!list[0] || sd.cy < list[0].cy));
-      if (hs.length) head = hs[hs.length - 1];
-    }
-    if (head && (head.h / head.w < 0.6 || head.h / head.w > 1.5)) { rejected.push(head); head = null; } // party box is ~square
-    // a crossed candidate box may be measured taller than it is – keep it (up to 3× the usual height)
-    const cands = list.filter(b => b.h <= Hf(b.cy) * 3 || (rejected.push(b), false));
-    // a real column: candidate boxes of the usual height, most with clear printed sides
-    // (a "column" assembled from letters of the candidate names has neither)
-    const hm = med(cands.map(b => b.h / Hf(b.cy)));
-    if (!cands.length || (!head && cands.length < 3) || hm < 0.75 || hm > 1.3 || cands.filter(b => b.sp).length < cands.length * 0.4) {
-      rejected.push(...c.seeds); continue;
-    }
-    cands.forEach(b => { b.hr = b.h / Hf(b.cy); });
-    found.push({ head, cands, x: xl((head || cands[0]).cy), y: (head || cands[0]).cy, n: cands.length + (head ? 1 : 0) });
-  }
-  // the same column reached from two seed chains → keep the fuller one
-  const valid = [];
-  found.sort((a, b) => b.n - a.n).forEach(c => { if (!valid.some(v => Math.abs(v.x - c.x) < W0 * 0.6)) valid.push(c); });
-  valid.sort((a, b) => a.x - b.x);
-  // 8) ink inside each box: pixels clearly darker than the paper; the printed border is excluded
-  const ink = b => {
-    const q = b.q, e = Math.max(3, b.t / 2 + 2.5), ec = Math.max(e, 0.22 * Math.min(b.w, b.h));
-    const ed = q.map((A, i) => { const B = q[(i + 1) % 4], dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1; return [A[0], A[1], dx / L, dy / L]; });
-    const vals = [], cen = [];
-    for (let y = Math.max(0, b.y0); y <= Math.min(h - 1, b.y1); y++) for (let x = Math.max(0, b.x0); x <= Math.min(w - 1, b.x1); x++) {
-      const dm = Math.min(...ed.map(([ax, ay, ux, uy]) => ux * (y - ay) - uy * (x - ax)));
-      if (dm > e) { vals.push(gi[y * w + x]); cen.push(dm > ec); }
-    }
-    if (vals.length < 6) return [0, 0];
-    const ring = [];
-    for (let y = Math.max(0, b.y0 - 6); y <= Math.min(h - 1, b.y1 + 6); y++) for (let x = Math.max(0, b.x0 - 6); x <= Math.min(w - 1, b.x1 + 6); x++) {
-      if (x >= b.x0 - 2 && x <= b.x1 + 2 && y >= b.y0 - 2 && y <= b.y1 + 2) continue;
-      ring.push(gi[y * w + x]);
-    }
-    const sv = [...vals].sort((x, y) => x - y), bg = Math.max(sv[Math.floor(sv.length * 0.85)], med(ring));
-    const thr = bg - Math.max(22, bg * 0.16);
-    let n = 0, nc = 0, tc = 0;
-    vals.forEach((v, i) => { if (v < thr) { n++; if (cen[i]) nc++; } if (cen[i]) tc++; });
-    return [n / vals.length, tc ? nc / tc : 0];
-  };
-  for (const c of valid) for (const b of [c.head, ...c.cands]) if (b) [b.ink, b.inkC] = ink(b);
-  return { cols: valid, rejected, w, h, box: [W0, H0], ink, gi };
-}
-/* scan-core:end */
-
-const SCAN_MAX = 1400, SCAN_MARK = 0.08, SCAN_UNSURE = 0.035;
-// index of the party expected in the left column of the next photo (pages are usually photographed in order)
-let scanNext = 0;
-
-/* Party box of a column that has none. On some lists the party box sits far above the first candidate
-   (a long party name or manifesto in the header), too far for the detector to connect them. The party
-   boxes of all columns lie on one row, so look for a square outline where that row meets the line of
-   the column's candidate boxes – a box the detector found as a separate one-box "column" is taken
-   over, otherwise the photo is searched locally. */
-function scanFixHeads(res) {
-  const heads = res.cols.filter(c => c.head).map(c => c.head);
-  if (!heads.length) return;
-  const med = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
-  const fit = (xs, ys) => { // least squares y = a + b·x
-    const n = xs.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
-    let sxx = 0, sxy = 0; xs.forEach((x, i) => { sxx += (x - mx) ** 2; sxy += (x - mx) * (ys[i] - my); });
-    const b = n > 1 && sxx > 1e-6 ? sxy / sxx : 0; return v => my + b * (v - mx);
-  };
-  const rowY = fit(heads.map(h => h.cx), heads.map(h => h.cy));
-  const hw = med(heads.map(h => h.w)), hh = med(heads.map(h => h.h)), ht = med(heads.map(h => h.t || 2));
-  const [W0, H0] = res.box;
-  for (const c of res.cols.filter(c => !c.head && c.cands.length >= 3)) {
-    const colX = fit(c.cands.map(b => b.cy), c.cands.map(b => b.cx)); // column line: x as a function of y
-    let ey = rowY(colX(c.cands[0].cy)); const ex = colX(ey); ey = rowY(ex);
-    if (ey >= c.cands[0].cy) continue;
-    // a one-box "column" there is this column's party box
-    const stray = res.cols.find(o => o !== c && o.head && o.cands.length <= 2 && Math.abs(o.head.cx - ex) < W0 * 3 && Math.abs(o.head.cy - ey) < hh * 4);
-    if (stray) { c.head = stray.head; c.head.joined = true; res.cols.splice(res.cols.indexOf(stray), 1); continue; }
-    const hd = scanFindSquare(res, ex, ey, hw, hh, W0 * 3, hh * 4);
-    if (hd) { hd.t = ht; [hd.ink, hd.inkC] = res.ink(hd); hd.found = true; c.head = hd; }
-  }
-}
-// best square outline of about hw×hh near (ex, ey): share of dark pixels along its four sides
-function scanFindSquare(res, ex, ey, hw, hh, rx, ry) {
-  const { gi, w, h } = res;
-  const X0 = Math.max(1, Math.round(ex - rx - hw)), X1 = Math.min(w - 2, Math.round(ex + rx + hw));
-  const Y0 = Math.max(1, Math.round(ey - ry - hh)), Y1 = Math.min(h - 2, Math.round(ey + ry + hh));
-  if (X1 - X0 < hw * 2 || Y1 - Y0 < hh * 2) return null;
-  const vals = []; for (let y = Y0; y <= Y1; y += 2) for (let x = X0; x <= X1; x += 2) vals.push(gi[y * w + x]);
-  vals.sort((a, b) => a - b);
-  const bg = vals[Math.floor(vals.length * 0.8)], thr = bg - Math.max(25, bg * 0.18);
-  const dk = (x, y) => gi[y * w + x] < thr || gi[y * w + x - 1] < thr || gi[y * w + x + 1] < thr || gi[(y - 1) * w + x] < thr || gi[(y + 1) * w + x] < thr;
-  let best = null;
-  for (const f of [0.85, 1, 1.15]) {
-    const bw = Math.round(hw * f), bh = Math.round(hh * f);
-    for (let y0 = Y0; y0 + bh <= Y1; y0++) for (let x0 = X0; x0 + bw <= X1; x0++) {
-      let n = 0, t = 0;
-      for (let x = x0; x <= x0 + bw; x += 1) { n += dk(x, y0) + dk(x, y0 + bh); t += 2; }
-      for (let y = y0 + 1; y < y0 + bh; y += 1) { n += dk(x0, y) + dk(x0 + bw, y); t += 2; }
-      const sc = n / t;
-      if (best && sc <= best.sc) continue;
-      // a box edge ends at the corners; an edge that runs on at both ends is a line across the paper
-      // (a crease, a frame) – not a box
-      const run = y => { let a = 0, b = 0; for (let d = 2; d <= 5; d++) { a += dk(Math.max(1, x0 - d), y); b += dk(Math.min(w - 2, x0 + bw + d), y); } return a >= 3 && b >= 3; };
-      if (run(y0) || run(y0 + bh)) continue;
-      best = { sc, x0, y0, bw, bh };
-    }
-  }
-  if (!best || best.sc < 0.8) return null;
-  const { x0, y0, bw, bh } = best, x1 = x0 + bw, y1 = y0 + bh;
-  return { q: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], x0, y0, x1, y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: bw, h: bh, sc: best.sc };
-}
-
-/* Which parties are on a photo? The ballot order and every party's number of candidates are known,
-   so the run of detected candidate boxes per column (e.g. 15, 1) usually fits only one place in the
-   list. A column cut off by the edge of the photo may show fewer boxes than the party has.
-   Returns the fit cost of every possible left-column party (index into cfg.parties); equal fits
-   (pages of 65-candidate lists) are resolved across the photos in scanAssign(). */
-function scanCosts(res) {
-  const N = cfg.parties.length, bh = res.box[1];
-  const obs = res.cols.map(c => {
-    const first = c.head || c.cands[0], last = c.cands[c.cands.length - 1];
-    return { d: c.cands.length, cut: (!!last && last.y1 > res.h - bh * 2.5) || (!c.head && !!first && first.y0 < bh * 2.5) };
-  });
-  // fit of column i to party p
-  const fitCost = (i, p) => {
-    const o = obs[i], kept = scanKeep(res.cols[i], p.cands.length), diff = p.cands.length - kept.boxes.length;
-    let c = 0.2 * kept.ghosts.length; // a fit that needs no fake boxes dropped is better
-    if (diff !== 0) c += diff > 0 && o.cut ? 0.3 : Math.min(8, Math.abs(diff));
-    return c;
-  };
-  // a "column" that fits no party (text, a frame line, the shifted half of a folded page) may be left
-  // out – cheaper when it has no party box; the columns left map to consecutive parties
-  const SKIP = i => res.cols[i].head ? 5 : 2.5, C = obs.length;
-  const cost = [], assign = [], used = [];
-  for (let s = 0; s < N; s++) {
-    const f = Array.from({ length: C + 1 }, () => []), how = Array.from({ length: C }, () => []);
-    const F = (i, j) => {
-      if (i === C) return 0;
-      if (f[i][j] !== undefined) return f[i][j];
-      const p = cfg.parties[s + j];
-      const take = (p ? fitCost(i, p) : 8) + F(i + 1, j + 1), skip = SKIP(i) + F(i + 1, j);
-      how[i][j] = take <= skip;
-      return (f[i][j] = Math.min(take, skip));
-    };
-    cost.push(F(0, 0));
-    const a = []; let j = 0;
-    for (let i = 0; i < C; i++) { F(i, j); if (how[i][j]) { a.push(s + j); j++; } else a.push(-1); }
-    assign.push(a); used.push(Math.max(1, j));
-  }
-  const min = Math.min(...cost);
-  const near = cost.map((c, i) => [c, i]).filter(([c]) => c <= min + 0.5).map(([, i]) => i);
-  const top = cost.map((c, i) => [c, i]).sort((a, b) => a[0] - b[0]).slice(0, 3).map(([, i]) => i);
-  return {
-    counts: obs.map(o => o.d), cost, assign, used,
-    status: min > obs.length * 1.5 ? 'poor' : near.length > 1 ? 'ambiguous' : 'sure',
-    options: near.length > 1 ? near : top
-  };
-}
-
-/* Fake boxes: where the ballot is folded, the crease can look like a flat box between two candidate
-   boxes (or after the last one). Candidate boxes are evenly spaced, so a real box has a neighbour at
-   the usual distance on at least one side; a fake one sits alone in the gap of the fold and is
-   usually flatter. Score = distance to the nearer neighbour in local box pitches. */
-const scanMedian = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
-function scanGhostScores(B) {
-  const n = B.length;
-  if (n < 4) return B.map(() => 0);
-  const gaps = B.slice(1).map((b, i) => b.cy - B[i].cy);
-  return B.map((b, i) => {
-    const loc = scanMedian(gaps.slice(Math.max(0, i - 6), Math.min(gaps.length, i + 6))) || 1;
-    const gp = i > 0 ? gaps[i - 1] / loc : Infinity, gn = i < n - 1 ? gaps[i] / loc : Infinity;
-    return Math.min(gp, gn, 9);
-  });
-}
-// gaps that are a near-whole number (2 or 3) of the local pitch = one or two boxes missed there
-function scanMissedGaps(B) {
-  if (B.length < 4) return [];
-  const gaps = B.slice(1).map((b, i) => b.cy - B[i].cy);
-  return gaps.map((g, i) => {
-    const loc = scanMedian(gaps.slice(Math.max(0, i - 6), Math.min(gaps.length, i + 7))) || 1, r = g / loc, k = Math.round(r) - 1;
-    return { i, k, dev: Math.abs(r - k - 1) };
-  }).filter(f => f.k >= 1 && f.k <= 2 && f.dev < 0.25).sort((a, b) => a.dev - b.dev);
-}
-function scanInterpolate(b, N, t, res) {
-  const q = b.q.map((P, m) => [P[0] + (N.q[m][0] - P[0]) * t, P[1] + (N.q[m][1] - P[1]) * t]);
-  const xs = q.map(p => p[0]), ys = q.map(p => p[1]);
-  const v = { ...b, q, cx: b.cx + (N.cx - b.cx) * t, cy: b.cy + (N.cy - b.cy) * t, hr: 1, added: true,
-    x0: Math.floor(Math.min(...xs)), x1: Math.ceil(Math.max(...xs)), y0: Math.floor(Math.min(...ys)), y1: Math.ceil(Math.max(...ys)) };
-  if (res) {
-    // snap to the printed box near the interpolated place (candidate spacing is only roughly even)
-    const sq = scanFindSquare(res, v.cx, v.cy, b.w, b.h, 3, Math.max(3, Math.abs(N.cy - b.cy) * 0.25));
-    if (sq) Object.assign(v, { q: sq.q, x0: sq.x0, x1: sq.x1, y0: sq.y0, y1: sq.y1, cx: sq.cx, cy: sq.cy, snapped: true });
-    [v.ink, v.inkC] = res.ink(v);
-  }
-  return v;
-}
-/* The candidate boxes of a column reconciled with the party's number of candidates. Spacing is only
-   roughly even: a candidate with a long description takes 3–6 text lines instead of 2.
-   1. a clearly fake box (between two boxes, alone in a wide gap, and flat) is always dropped;
-   2. too many boxes → drop the most fake-looking ones (alone in a wide gap, or far after the last box);
-   3. too few → fill gaps of two (three) pitches with interpolated boxes, ink measured as usual;
-   4. a fake-looking box together with a clean gap of one missed box → swap them. */
-function scanKeep(col, nCands) {
-  const memo = col.keep || (col.keep = new Map());
-  if (memo.has(nCands)) return memo.get(nCands);
-  // repairs are for near misses only; a column far off the party's count is simply the wrong party
-  // (and repairing it would search the photo for dozens of boxes that are not there)
-  if (Math.abs(col.cands.length - nCands) > Math.max(3, Math.round(nCands * 0.1))) {
-    const r = { boxes: col.cands.slice(), ghosts: [], added: [] };
-    memo.set(nCands, r);
-    return r;
-  }
-  let boxes = col.cands.slice();
-  const ghosts = [], added = [];
-  const dropAt = i => { ghosts.push(boxes[i]); boxes.splice(i, 1); };
-  const sc = scanGhostScores(boxes), last = boxes.length - 1;
-  for (let i = last - 1; i >= 1; i--) if (sc[i] >= 1.5 && boxes[i].hr < 0.8) dropAt(i);
-  // is there a printed box of the usual size right where this box was found? (a crease is not one)
-  const res = col.res, mw = scanMedian(col.cands.map(b => b.w)), mh = scanMedian(col.cands.map(b => b.h / (b.hr || 1)));
-  const real = b => {
-    if (!res) return true;
-    if (b.real === undefined) { const q = scanFindSquare(res, b.cx, b.cy, mw, mh, 2, Math.max(2, mh * 0.3)); b.real = !!q && Math.abs(q.cy - b.cy) < mh * 0.5; }
-    return b.real;
-  };
-  // fake-looking: alone in a gap (flatter and unverified boxes count more), or the last box far below
-  const weak = () => {
-    const g = scanGhostScores(boxes), n = boxes.length;
-    return g.map((v, i) => [i > 0 && i < n - 1 ? (v > 1.1 ? v + (boxes[i].hr < 0.85 ? 0.4 : 0) + (real(boxes[i]) ? 0 : 0.6) : v) : i === n - 1 && v > 3 ? v : 0, i])
-      .filter(([v]) => v > 1.6).sort((a, b) => b[0] - a[0]);
-  };
-  while (boxes.length > nCands) { const w = weak(); if (!w.length) break; dropAt(w[0][1]); }
-  const fill = maxDev => {
-    const f = scanMissedGaps(boxes).filter(x => x.dev < maxDev)[0];
-    if (!f) return false;
-    const k = Math.min(f.k, Math.max(1, nCands - boxes.length)), b = boxes[f.i], N = boxes[f.i + 1];
-    const vs = Array.from({ length: k }, (_, j) => scanInterpolate(b, N, (j + 1) / (f.k + 1), col.res));
-    boxes.splice(f.i + 1, 0, ...vs); added.push(...vs);
-    return true;
-  };
-  // a tall box of the usual width = two or three boxes read as one; split it if the printed boxes are there
-  if (res && boxes.length < nCands) {
-    const mw = scanMedian(boxes.map(b => b.w));
-    for (let i = boxes.length - 1; i >= 0 && boxes.length < nCands; i--) {
-      const b = boxes[i];
-      if (!(b.hr >= 1.9) || b.w > mw * 1.15) continue;
-      const Hb = b.h / b.hr, gaps = boxes.slice(1).map((x, j) => x.cy - boxes[j].cy), pitch = scanMedian(gaps) || Hb * 1.5;
-      const k = Math.max(2, Math.min(3, Math.round((b.h + pitch - Hb) / pitch)));
-      const parts = Array.from({ length: k }, (_, j) => scanFindSquare(res, b.cx, b.y0 + Hb / 2 + j * (b.h - Hb) / (k - 1), b.w, Hb, 2, pitch * 0.3));
-      if (parts.some(p => !p) || parts.some((p, j) => j && p.cy - parts[j - 1].cy < pitch * 0.6)) continue;
-      const vs = parts.map(p => { const v = { ...b, q: p.q, x0: p.x0, x1: p.x1, y0: p.y0, y1: p.y1, cx: p.cx, cy: p.cy, h: p.h, hr: 1, added: true, snapped: true }; [v.ink, v.inkC] = res.ink(v); return v; });
-      boxes.splice(i, 1, ...vs); added.push(...vs);
-    }
-  }
-  // a missed box: look for the printed box in gaps wider than usual (one with a long description has
-  // none – only text), and take it only where a printed square is really found
-  const snapFill = () => {
-    if (!res || boxes.length < 2) return false;
-    const gaps = boxes.slice(1).map((b, i) => b.cy - boxes[i].cy);
-    const cand = gaps.map((g, i) => {
-      const loc = scanMedian(gaps.slice(Math.max(0, i - 6), Math.min(gaps.length, i + 7))) || 1;
-      return { i, r: g / loc, loc, dev: Math.abs(g / loc - Math.round(g / loc)) };
-    }).filter(f => f.r >= 1.75 && f.r < 6).sort((a, b) => a.dev - b.dev || b.r - a.r);
-    for (const f of cand) {
-      const b = boxes[f.i], N = boxes[f.i + 1];
-      const k = Math.max(1, Math.min(Math.round(f.r) - 1, nCands - boxes.length));
-      const vs = Array.from({ length: k }, (_, j) => scanInterpolate(b, N, (j + 1) / (k + 1), res));
-      const ys = [b.cy, ...vs.map(v => v.cy), N.cy];
-      if (vs.some(v => !v.snapped) || ys.slice(1).some((y, j) => y - ys[j] < f.loc * 0.6)) continue;
-      boxes.splice(f.i + 1, 0, ...vs); added.push(...vs);
-      return true;
-    }
-    return false;
-  };
-  while (boxes.length < nCands && snapFill());
-  while (boxes.length < nCands && fill(0.25));
-  // a fake-looking box and a missed one cancel out in the count: swap them when the missed box is found
-  for (let guard = 0; guard < 3 && boxes.length === nCands; guard++) {
-    const w = weak(); if (!w.length) break;
-    const saved = boxes.slice(), ng = ghosts.length;
-    dropAt(w[0][1]);
-    if (!snapFill()) { boxes.splice(0, boxes.length, ...saved); ghosts.length = ng; break; }
-  }
-  const r = { boxes, ghosts, added };
-  memo.set(nCands, r);
-  return r;
-}
-const SCAN_PHOTOS = 8;
-// photos of the ballot being scanned: { file, url (thumbnail), res (detection), costs, s (left-column party index), manual }
-let scanPhotos = [], scanBusy = false;
-const scanReady = ph => ph.res && ph.res.cols.length > 0;
-/* columns → parties of a photo: the fit found by scanCosts (it may leave out a column that fits no
-   party); after the party of the left column is picked in the select, simply column i → party s + i */
-function scanPlan(ph, s = ph.s) {
-  if (ph.manual === 'select' && s === ph.s) {
-    const a = ph.res.cols.map((c, i) => s + i < cfg.parties.length ? s + i : -1);
-    return { a, used: Math.max(1, a.filter(x => x >= 0).length) };
-  }
-  return { a: ph.costs.assign[s], used: ph.costs.used[s] };
-}
+   Photos are read by ballot.py – the script from the repo, embedded verbatim in #ballot-py – running
+   under Pyodide (Python + numpy + OpenCV compiled to WebAssembly, downloaded on first use, ~65 MB).
+   The script is not changed: its candidates.json is written from the current candidate list (so it
+   does not download one), then read_ballot() is called for each photo. Its rules apply: parties are
+   recognised from the box counts (or from the party picked for the left column = --first-party);
+   a column whose box count differs from the candidate list is NOT READ and must be checked by hand.
+   Never saves: the marks are merged into `sel`, the user reviews them and taps Uložit as usual. */
+// Pyodide: next to the page first (the claude.ai artifact publishes the files with it – its sandbox
+// only lets the page fetch its own files), otherwise from the CDN (GitHub Pages, tests)
+const PYODIDE_BASES = ['pyodide/', 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'];
+const SCAN_PHOTOS = 8, SCAN_MAX = 2600; // photos are downscaled to this (the real test photos are ~2600 px)
+// photos: { file, url (thumbnail), jpeg (bytes given to ballot.py), first (left-column party no., null = let ballot.py tell),
+//           res: { cols: [{ n, marks }] } | null, err (message), ann (blob URL of the annotated photo) }
+let scanPhotos = [], scanBusy = false, scanPy = null;
 
 function scanMsg(cls, text) { const el = $('scanMsg'); el.className = 'msg' + (cls ? ' ' + cls : ''); el.textContent = text; }
+const scanDone = ph => ph.res || ph.err;
 function scanControls() {
-  const full = scanPhotos.length >= SCAN_PHOTOS, done = scanPhotos.length > 0 && scanPhotos.every(ph => ph.res || ph.err);
-  ['scanCamLbl', 'scanGalLbl'].forEach(id => $(id).classList.toggle('disabled', full));
-  $('scanFile').disabled = $('scanGallery').disabled = full;
+  const full = scanPhotos.length >= SCAN_PHOTOS, done = scanPhotos.length > 0 && scanPhotos.every(scanDone);
+  ['scanCamLbl', 'scanGalLbl'].forEach(id => $(id).classList.toggle('disabled', full || scanBusy));
+  $('scanFile').disabled = $('scanGallery').disabled = full || scanBusy;
   $('scanRun').hidden = done; $('scanApply').hidden = !done;
   $('scanRun').disabled = !scanPhotos.length || scanBusy;
   $('scanRun').textContent = scanPhotos.length ? `Vyhodnotit (${pl(scanPhotos.length, 'fotka', 'fotky', 'fotek')})` : 'Vyhodnotit';
-  $('scanApply').disabled = !scanPhotos.some(scanReady);
+  $('scanApply').disabled = scanBusy || !scanPhotos.some(ph => ph.res);
 }
+const scanRange = ph => { const c = ph.res.cols; return c.length > 1 ? `${c[0].n}–${c[c.length - 1].n}` : `${c[0].n}`; };
 function scanThumbs() {
   $('scanThumbs').innerHTML = scanPhotos.map((ph, i) => `<div class="scan-thumb"><img src="${ph.url}" alt="Fotka ${i + 1}"><span class="n">${i + 1}</span>` +
-    (ph.err ? '<span class="r">chyba</span>' : ph.res ? `<span class="r">${scanReady(ph) ? 'strany ' + scanRange(ph.s, scanPlan(ph).used) : 'nic'}</span>` : '') +
+    (ph.err ? '<span class="r">nepřečteno</span>' : ph.res ? `<span class="r">strany ${scanRange(ph)}</span>` : '') +
     `<button class="x" type="button" data-del="${i}" aria-label="Odebrat fotku ${i + 1}">×</button></div>`).join('');
   scanControls();
 }
 function scanAdd(files) {
   const list = [...files], free = SCAN_PHOTOS - scanPhotos.length;
-  list.slice(0, free).forEach(file => scanPhotos.push({ file, url: URL.createObjectURL(file), res: null, s: -1, manual: false }));
-  $('scanPages').innerHTML = '';
-  scanThumbs();
+  list.slice(0, free).forEach(file => scanPhotos.push({ file, url: URL.createObjectURL(file), first: null, res: null }));
+  scanThumbs(); scanShowAll();
   if (list.length > free) scanMsg('bad', `Najednou lze vyhodnotit nejvýše ${SCAN_PHOTOS} fotek – ${list.length - free} se nepřidalo.`);
   else scanMsg('', `Fotek: ${scanPhotos.length} z ${SCAN_PHOTOS}. Přidejte další stránky s křížky, nebo klepněte na Vyhodnotit.`);
 }
-function scanClear() {
-  scanPhotos.forEach(ph => URL.revokeObjectURL(ph.url));
-  scanPhotos = []; $('scanPages').innerHTML = ''; scanMsg('', ''); scanThumbs();
-}
+function scanForget(ph) { URL.revokeObjectURL(ph.url); if (ph.ann) URL.revokeObjectURL(ph.ann); }
+function scanClear() { scanPhotos.forEach(scanForget); scanPhotos = []; $('scanPages').innerHTML = ''; scanMsg('', ''); scanThumbs(); }
 function scanClose() { $('scanPanel').hidden = true; $('scanOpen').setAttribute('aria-expanded', 'false'); }
 $('scanOpen').addEventListener('click', () => {
   const p = $('scanPanel'); p.hidden = !p.hidden; $('scanOpen').setAttribute('aria-expanded', !p.hidden);
@@ -2766,247 +2348,179 @@ $('scanCancel').addEventListener('click', scanClose);
 }));
 $('scanThumbs').addEventListener('click', e => {
   const b = e.target.closest('[data-del]'); if (!b || scanBusy) return;
-  const [ph] = scanPhotos.splice(+b.dataset.del, 1); URL.revokeObjectURL(ph.url);
-  scanThumbs();
-  if (scanPhotos.length && scanPhotos.every(x => x.res || x.err)) { scanAssign(); scanShowAll(); } else $('scanPages').innerHTML = '';
+  scanForget(scanPhotos.splice(+b.dataset.del, 1)[0]);
+  scanThumbs(); scanShowAll();
 });
 
-function scanLoad(file) {
-  return new Promise((ok, fail) => {
-    const url = URL.createObjectURL(file), img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); ok(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('Soubor nejde otevřít jako obrázek.')); };
-    img.src = url;
+/* ---------- Python ---------- */
+const scanScript = src => new Promise((ok, fail) => {
+  const s = document.createElement('script'); s.src = src; s.onload = ok;
+  s.onerror = () => { s.remove(); fail(new Error('nelze načíst ' + src)); };
+  document.head.appendChild(s);
+});
+// a file published in parts (the artifact allows 15 MB per file; the OpenCV package has ~50 MB):
+// pyodide/parts.json = { "<file>": ["<file>.1", …] }, fetches of <file> are answered with the parts joined
+async function scanParts(base) {
+  let parts;
+  try { const r = await fetch(base + 'parts.json'); if (!r.ok) return; parts = await r.json(); } catch { return; }
+  const fetch0 = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const url = String(input instanceof Request ? input.url : input), name = url.split('?')[0].split('/').pop();
+    if (!parts[name] || !url.includes(base)) return fetch0(input, init);
+    const bufs = await Promise.all(parts[name].map(p => fetch0(base + p).then(r => { if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.arrayBuffer(); })));
+    return new Response(new Blob(bufs), { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
+  };
+}
+function scanPython() {
+  if (!scanPy) scanPy = (async () => {
+    let base = null;
+    for (const b of PYODIDE_BASES) {
+      try { if (!window.loadPyodide) await scanScript(b + 'pyodide.js'); base = b; break; } catch {}
+    }
+    if (!base) throw new Error('Pyodide se nepodařilo stáhnout – rozpoznání z fotek potřebuje připojení k internetu.');
+    await scanParts(base);
+    const py = await window.loadPyodide({ indexURL: base });
+    await py.loadPackage(['numpy', 'opencv-python']);
+    py.FS.mkdirTree('/ballot');
+    py.FS.writeFile('/ballot/ballot.py', $('ballot-py').textContent.replace(/^\n/, ''));
+    py.runPython("import sys\nsys.path.insert(0, '/ballot')\nimport ballot");
+    return py;
+  })().catch(e => { scanPy = null; throw e; });
+  return scanPy;
+}
+// the candidate list in ballot.py's format (candidates.json): name of candidate no. 1, 2, …
+function scanCandidates() {
+  return JSON.stringify(cfg.parties.map(p => {
+    const names = []; p.cands.forEach(c => { names[c.n - 1] = c.name; });
+    return { number: p.n, name: p.name, candidates: Array.from(names, x => x ?? null) };
+  }));
+}
+// the photo as JPEG of at most SCAN_MAX px (phones take 4000 px photos, maybe HEIC; the canvas also applies the EXIF rotation)
+async function scanJpeg(file) {
+  const img = await new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); ok(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); fail(new Error('Soubor nejde otevřít jako obrázek.')); };
+    im.src = url;
   });
-}
-async function scanDetectFile(file) {
-  const img = await scanLoad(file);
   const k = Math.min(1, SCAN_MAX / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const cx = cv.getContext('2d', { willReadFrequently: true });
-  cx.imageSmoothingQuality = 'high'; cx.drawImage(img, 0, 0, w, h);
-  const d = cx.getImageData(0, 0, w, h).data, g = new Uint8ClampedArray(w * h), gi = new Uint8ClampedArray(w * h);
-  for (let i = 0; i < g.length; i++) {
-    const r = d[4 * i], gg = d[4 * i + 1], bb = d[4 * i + 2];
-    g[i] = Math.max(r, gg, bb); gi[i] = (r * 299 + gg * 587 + bb * 114) / 1000;
-  }
-  const t0 = performance.now();
-  const res = scanDetect(g, gi, w, h);
-  res.ms = Math.round(performance.now() - t0); res.scale = k; res.canvas = cv;
-  scanFixHeads(res);
-  res.cols.forEach(c => { c.res = res; });
-  return res;
+  const cv = document.createElement('canvas'); cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+  const cx = cv.getContext('2d'); cx.imageSmoothingQuality = 'high'; cx.drawImage(img, 0, 0, cv.width, cv.height);
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/jpeg', 0.92));
+  return new Uint8Array(await blob.arrayBuffer());
 }
-$('scanRun').addEventListener('click', async () => {
-  if (scanBusy || !scanPhotos.length) return;
+// ballot.py's messages (sys.exit) in Czech
+function scanError(text) {
+  let m;
+  if ((m = text.match(/box counts \[([^\]]*)\]/))) return `Počty políček ve sloupcích (${m[1]}) odpovídají více stránkám lístku – vyberte stranu v levém sloupci fotky.`;
+  if ((m = text.match(/--first-party (\d+) does not fit (\d+) columns/))) return `Na fotce je ${pl(+m[2], 'sloupec', 'sloupce', 'sloupců')} – za stranou ${m[1]} jich na lístku tolik není. Vyberte jinou stranu v levém sloupci.`;
+  if (/no party columns found/.test(text)) return 'Na fotce jsem nenašel sloupce stran (rámečky). Vyfoťte stránku celou, zpředu, rovně a při dobrém světle.';
+  if (/cannot read image/.test(text)) return 'Fotku nejde přečíst.';
+  return 'Chyba rozpoznání: ' + text;
+}
+async function scanRead(py, ph) {
+  if (!ph.jpeg) ph.jpeg = await scanJpeg(ph.file);
+  py.FS.writeFile('/ballot/photo.jpg', ph.jpeg);
+  try { py.FS.unlink('/ballot/annotated.jpg'); } catch {}
+  py.globals.set('first_party', ph.first ?? undefined); // undefined = None
+  const out = JSON.parse(py.runPython(`
+import json
+try:
+    _cols = ballot.read_ballot('/ballot/photo.jpg', ballot.load_parties(), first_party, '/ballot/annotated.jpg')
+    _out = {'cols': [{'n': p['number'], 'marks': [bool(m) for m in marks]} for p, marks in _cols]}
+except SystemExit as e:
+    _out = {'error': str(e)}
+json.dumps(_out)`));
+  if (ph.ann) { URL.revokeObjectURL(ph.ann); ph.ann = null; }
+  try { ph.ann = URL.createObjectURL(new Blob([py.FS.readFile('/ballot/annotated.jpg')], { type: 'image/jpeg' })); } catch {}
+  ph.res = out.cols ? out : null;
+  ph.err = out.error ? scanError(out.error) : null;
+}
+async function scanRun(list) {
+  if (scanBusy) return;
   scanBusy = true; scanControls();
   delete $('scanPanel')._scan;
-  for (let i = 0; i < scanPhotos.length; i++) {
-    const ph = scanPhotos[i];
-    if (ph.res || ph.err) continue;
-    scanMsg('', `Vyhodnocuji fotku ${i + 1} z ${scanPhotos.length}…`);
-    await new Promise(r => setTimeout(r, 30));
-    try { ph.res = await scanDetectFile(ph.file); ph.costs = scanCosts(ph.res); } catch (err) { ph.err = err.message || String(err); }
-  }
-  scanBusy = false;
-  scanAssign(); scanShowAll(); scanThumbs();
-  $('scanPanel')._scan = scanPhotos.map(ph => ph.res); // for automated tests
-});
-
-/* Which parties are on each photo: every photo's own fit (scanCosts) plus a small preference for photos
-   taken in ballot order – the next photo continues where the previous one ended, the first one starts
-   at party 1 (or after the page applied last, if the ballot is half filled). Only breaks ties between
-   equally good fits (pages of 65-candidate lists); a party choice made by the user is kept fixed. */
-function scanAssign() {
-  const N = cfg.parties.length, pages = scanPhotos.filter(scanReady);
-  if (!pages.length || !N) return;
-  const start = sel.parties.size || sel.cands.size ? Math.min(scanNext, N - 1) : 0;
-  const step = (ps, pk, s, k) => {
-    const e = ps < 0 ? start : ps + pk;
-    if (s === e) return 0;
-    if (ps >= 0 && s < ps + pk && s + k > ps) return 1.5; // the same parties as the previous photo
-    return s > e ? 0.15 : 0.3;
-  };
-  let prev = null;
-  pages.forEach((ph, i) => {
-    const row = [], pp = i ? pages[i - 1] : null;
-    for (let s = 0; s < N; s++) {
-      const c = ph.manual ? (s === ph.s ? 0 : Infinity) : ph.costs.cost[s];
-      let bv = Infinity, bf = -1;
-      const k = scanPlan(ph, s).used;
-      if (!prev) bv = step(-1, 0, s, k);
-      else prev.forEach((p, ps) => { const v = p.v + step(ps, scanPlan(pp, ps).used, s, k); if (v < bv) { bv = v; bf = ps; } });
-      row.push({ v: c + bv, f: bf });
+  try {
+    scanMsg('', scanPy ? 'Spouštím rozpoznání…' : 'Načítám rozpoznání (Python + OpenCV, asi 65 MB, jen poprvé – chvíli to trvá)…');
+    const py = await scanPython();
+    py.FS.writeFile('/ballot/candidates.json', scanCandidates()); // the current list, every run
+    for (const ph of list) {
+      scanMsg('', `Vyhodnocuji fotku ${scanPhotos.indexOf(ph) + 1} z ${scanPhotos.length}…`);
+      await new Promise(r => setTimeout(r, 30));
+      try { await scanRead(py, ph); } catch (err) { ph.res = null; ph.err = 'Chyba rozpoznání: ' + (err.message || err); }
     }
-    ph.dp = row; prev = row;
-  });
-  let s = prev.reduce((bi, r, i, a) => r.v < a[bi].v ? i : bi, 0);
-  for (let i = pages.length - 1; i >= 0; i--) { pages[i].s = s; s = pages[i].dp[s].f; }
-  pages.forEach((ph, i) => { ph.follows = ph.s === (i ? pages[i - 1].s + scanPlan(pages[i - 1]).used : start); });
-}
-
-const scanRange = (s, k) => {
-  const a = cfg.parties[s], b = cfg.parties[Math.min(cfg.parties.length - 1, s + k - 1)];
-  return a === b ? `${a.n}` : `${a.n}–${b.n}`;
-};
-function scanGuessHtml(ph, i) {
-  const G = ph.costs, k = scanPlan(ph).used, counts = G.counts.join(', '), r = scanRange(ph.s, k);
-  const options = G.options.includes(ph.s) ? G.options : [ph.s, ...G.options];
-  let text;
-  if (ph.manual) text = `Strany vybrány ručně: <b>${r}</b>.`;
-  else if (G.status === 'sure') text = `Podle počtu políček (${counts}) jsou na fotce strany <b>${r}</b>.`;
-  else if (G.status === 'ambiguous') text = `Počty políček (${counts}) odpovídají více stránkám. Vybral jsem <b>${r}</b>${ph.follows ? (i ? ' (navazuje na předchozí fotku)' : ' (navazuje na předchozí stránku)') : ''} – podle čísla strany na lístku případně klepněte na jinou:`;
-  else text = `Počty políček (${counts}) neodpovídají přesně žádné stránce, nejblíž jsou strany <b>${r}</b>. Zkontrolujte číslo strany na lístku:`;
-  const sure = G.status === 'sure' && !ph.manual;
-  const chips = sure ? '' : '<div class="chips">' + options.slice(0, 8).map(o =>
-    `<button class="btn small" type="button" data-s="${o}" aria-pressed="${o === ph.s}">${scanRange(o, G.used[o])}</button>`).join('') + '</div>';
-  return `<div class="msg ${sure ? 'ok' : 'bad'}" data-status="${ph.manual ? 'manual' : G.status}">${text}</div>${chips}`;
-}
-
-// map detected columns to parties (left column = chosen party, then following parties in list order)
-function scanMap(ph) {
-  const a = ph.s >= 0 ? scanPlan(ph).a : [];
-  return ph.res.cols.map((c, i) => {
-    const p = a[i] >= 0 ? cfg.parties[a[i]] : null;
-    // a cross passes through the middle of the box; ink only near the border (a stroke from the
-    // neighbouring box, a smudge) is reported as unsure
-    // a box filled in where none was found can't be read reliably unless it snapped to a printed square
-    const st = b => b.ink >= SCAN_MARK && b.inkC >= SCAN_UNSURE ? (b.added && !b.snapped ? 'unsure' : 'on') : b.ink >= SCAN_UNSURE ? 'unsure' : 'off';
-    const { boxes, ghosts, added } = p ? scanKeep(c, p.cands.length) : { boxes: c.cands, ghosts: [], added: [] };
-    return { p, col: c, boxes, ghosts, added, head: c.head ? st(c.head) : 'none', cands: boxes.map(st) };
-  });
-}
-// overlay preview, cropped to the detected columns (with room for labels and candidate names)
-function scanDraw(res, map, o) {
-  const src = res.canvas, all = res.cols.flatMap(cl => [cl.head, ...cl.cands]).filter(Boolean);
-  let X0 = 0, Y0 = 0, X1 = src.width, Y1 = src.height;
-  if (all.length) {
-    const [bw, bh] = res.box;
-    X0 = Math.max(0, Math.min(...all.map(b => b.x0)) - bw * 2.5); X1 = Math.min(src.width, Math.max(...all.map(b => b.x1)) + bw * 7);
-    Y0 = Math.max(0, Math.min(...all.map(b => b.y0)) - bh * 2); Y1 = Math.min(src.height, Math.max(...all.map(b => b.y1)) + bh * 2);
+    scanShowAll();
+  } catch (err) {
+    scanMsg('bad', err.message || String(err));
   }
-  o.width = Math.round(X1 - X0); o.height = Math.round(Y1 - Y0);
-  const c = o.getContext('2d'); c.translate(-X0, -Y0); c.drawImage(src, 0, 0);
-  const lw = Math.max(1.5, o.width / 400), fs = Math.max(10, Math.round(o.width / 30));
-  const quad = (b, color, width, dash) => {
-    c.beginPath(); b.q.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath();
-    c.setLineDash(dash || []); c.strokeStyle = color; c.lineWidth = width; c.stroke(); c.setLineDash([]);
-  };
-  const COL = { on: '#e0168a', unsure: '#f08c00', off: '#14a44d' };
-  // boxes of a plausible size that were not used (not in a column with a party box) – dashed grey
-  res.rejected.filter(b => Math.abs(b.w - res.box[0]) <= res.box[0] * 0.4).forEach(b => quad(b, 'rgba(110,110,110,.9)', lw, [6, 4]));
-  c.font = `700 ${fs}px sans-serif`; c.textBaseline = 'middle';
-  map.forEach(({ p, col, boxes, ghosts, head, cands }) => {
-    ghosts.forEach(b => quad(b, 'rgba(110,110,110,.9)', lw, [6, 4])); // fake boxes (fold of the paper) – dashed grey
-    [...(col.head ? [[col.head, head, p ? `${p.n}` : '?']] : []), ...boxes.map((b, i) => [b, cands[i], p ? `${p.n}.${i + 1}` : `?.${i + 1}`])].forEach(([b, st, label]) => {
-      quad(b, COL[st], st === 'off' ? lw : lw * 2, b.added ? [4, 3] : null);
-      const tw = c.measureText(label).width + 6, x = Math.max(X0, b.x0 - tw - 4), y = b.cy;
-      c.fillStyle = 'rgba(255,255,255,.85)'; c.fillRect(x, y - fs * 0.6, tw, fs * 1.2);
-      c.fillStyle = COL[st] === COL.off ? '#0b6b31' : COL[st]; c.fillText(label, x + 3, y);
-    });
-  });
+  scanBusy = false; scanThumbs();
+  $('scanPanel')._scan = scanPhotos.map(ph => ph.res || ph.err || null); // for automated tests
 }
-/* The same party on several photos: use the reading that needed the fewest corrections (box count
-   matches the party, nothing filled in or dropped, party box found, no unsure marks); on a tie the
-   later photo. Readings of equal quality that differ are reported. */
-function scanQuality(m) {
-  return 2 * Math.abs(m.boxes.length - m.p.cands.length) + m.added.reduce((a, b) => a + (b.snapped ? 0.5 : 1), 0) +
-    0.5 * m.ghosts.length + (m.head === 'none' ? 1 : 0) + 0.5 * (m.head === 'unsure') + 0.5 * m.cands.filter(s => s === 'unsure').length;
+$('scanRun').addEventListener('click', () => scanRun(scanPhotos.filter(ph => !scanDone(ph))));
+
+/* ---------- results ---------- */
+// a column is read when it has as many boxes as the party has candidates (as in ballot.py's print_result)
+const scanParty = n => pIndex.get(n);
+const scanReadable = c => scanParty(c.n) && c.marks.length - 1 === scanParty(c.n).cands.length;
+// the same party on several photos: the later photo that read it is used
+function scanUsed() {
+  const used = new Map();
+  scanPhotos.forEach((ph, i) => { if (ph.res) ph.res.cols.forEach(c => { if (scanReadable(c)) used.set(c.n, i); }); });
+  return used;
 }
-const scanMarks = m => (m.head === 'on' ? 'P' : '') + m.cands.map((s, i) => s === 'on' ? ',' + (i + 1) : '').join('');
-function scanReadings() {
-  const by = new Map();
-  scanPhotos.forEach((ph, i) => {
-    if (!scanReady(ph)) return;
-    scanMap(ph).forEach(m => {
-      if (!m.p) return;
-      const r = { i, m, q: scanQuality(m), marks: scanMarks(m) };
-      if (!by.has(m.p.n)) by.set(m.p.n, []);
-      by.get(m.p.n).push(r);
-    });
-  });
-  for (const list of by.values()) list.best = list.reduce((a, b) => b.q <= a.q ? b : a);
-  return by;
-}
-function scanSummary(map, readings, photo) {
-  return map.map(({ p, head, cands, ghosts, boxes, added }, ci) => {
-    if (!p) return `<li data-p=""><b>Sloupec ${ci + 1}</b>: <span class="w">nesedí k žádné straně (text, čára nebo posunutá polovina přeloženého lístku) – nepoužije se.</span></li>`;
-    const marked = cands.map((s, i) => s === 'on' ? i + 1 : 0).filter(Boolean);
-    const unsure = [head === 'unsure' ? 'strana' : '', ...cands.map((s, i) => s === 'unsure' ? `${i + 1}` : '')].filter(Boolean);
-    const parts = [];
-    if (head === 'on') parts.push('křížek u strany');
-    if (marked.length) parts.push(`kandidáti ${marked.join(', ')}`);
-    let warn = '';
-    if (cands.length > p.cands.length) warn += `<span class="w">Nalezeno ${pl(cands.length, 'políčko', 'políčka', 'políček')} kandidátů, kandidátů je jen ${p.cands.length} – je správně zvolená strana v levém sloupci? Křížky navíc se nepoužijí.</span>`;
-    else if (cands.length !== p.cands.length) warn += `<span class="w">Nalezeno ${pl(cands.length, 'políčko', 'políčka', 'políček')} kandidátů, kandidátů je ${p.cands.length} – zkontrolujte.</span>`;
-    if (added.length) warn += `<span class="w">Doplněno ${pl(added.length, 'políčko', 'políčka', 'políček')}, které rozpoznání přehlédlo (${added.map(b => boxes.indexOf(b) + 1).sort((a, b) => a - b).join(', ')}) – v náhledu čárkovaně, zkontrolujte.</span>`;
-    if (ghosts.length) warn += `<span class="w">Vynecháno ${pl(ghosts.length, 'falešné políčko', 'falešná políčka', 'falešných políček')} (přehyb papíru) – v náhledu šedě čárkovaně.</span>`;
-    if (head === 'none') warn += '<span class="w">Políčko strany nenalezeno – křížek u strany zkontrolujte ručně.</span>';
-    if (unsure.length) warn += `<span class="w">Nejisté (nepoužije se): ${unsure.join(', ')}.</span>`;
-    const list = readings.get(p.n) || [], others = list.filter(r => r.i !== photo);
-    if (others.length) {
-      const best = list.best, nums = others.map(r => r.i + 1).join(', ');
-      if (best.i === photo) warn += `<span class="w">Strana ${p.n} je i na fotce ${nums} – použije se tato fotka${others.every(r => r.q > best.q) ? ' (lépe rozpoznaná)' : ''}.</span>`;
-      else warn += `<span class="w">Strana ${p.n} je i na fotce ${nums} – použije se fotka ${best.i + 1} (${best.q < scanQuality(list.find(r => r.i === photo).m) ? 'lépe rozpoznaná' : 'stejně dobře rozpoznaná, pozdější'}).</span>`;
-      const differ = list.filter(r => r.q === best.q && r.marks !== best.marks);
-      if (differ.length) warn += `<span class="w">Pozor: fotky ${[best, ...differ].map(r => r.i + 1).join(' a ')} se u strany ${p.n} liší – zkontrolujte na papíře.</span>`;
+const scanMarks = c => ({ party: !!c.marks[0], cands: c.marks.map((m, i) => m && i ? i : 0).filter(Boolean) });
+function scanSummary(ph, i, used) {
+  return ph.res.cols.map(c => {
+    const p = scanParty(c.n), { party, cands } = scanMarks(c), read = scanReadable(c);
+    const parts = []; let warn = '';
+    if (party) parts.push('křížek u strany');
+    if (cands.length) parts.push(`kandidáti ${cands.join(', ')}`);
+    if (!read) warn += `<span class="w">NEPŘEČTENO – nalezeno ${pl(Math.max(c.marks.length - 1, 0), 'políčko', 'políčka', 'políček')} kandidátů z ${p ? p.cands.length : '?'}; zkontrolujte ručně, na lístek se nepřenese.</span>`;
+    else {
+      const others = scanPhotos.map((o, j) => j !== i && o.res && o.res.cols.some(x => x.n === c.n && scanReadable(x)) ? j : -1).filter(j => j >= 0);
+      if (others.length) {
+        warn += `<span class="w">Strana ${c.n} je i na fotce ${others.map(j => j + 1).join(', ')} – použije se fotka ${used.get(c.n) + 1}.</span>`;
+        const mine = JSON.stringify(scanMarks(c));
+        if (others.some(j => JSON.stringify(scanMarks(scanPhotos[j].res.cols.find(x => x.n === c.n))) !== mine)) warn += `<span class="w">Pozor: fotky se u strany ${c.n} liší – zkontrolujte na papíře.</span>`;
+      }
     }
-    return `<li data-p="${p.n}" data-party="${head === 'on' ? 1 : 0}" data-cands="${marked.join(',')}" data-boxes="${cands.length}">` +
-      `<b>Strana ${p.n}</b>: ${parts.length ? parts.join('; ') : 'bez křížků'}${warn}</li>`;
+    return `<li data-p="${c.n}" data-read="${read ? 1 : 0}" data-party="${party ? 1 : 0}" data-cands="${cands.join(',')}" data-boxes="${Math.max(c.marks.length - 1, 0)}">` +
+      `<b>Strana ${c.n}</b>${p ? ` <span class="hint">${esc(shortName(p))}</span>` : ''}: ${parts.length ? parts.join('; ') : 'bez křížků'}${warn}</li>`;
   }).join('');
 }
 function scanShowAll() {
-  const opts = cfg.parties.map(p => `<option value="${p.n}">${p.n}. ${esc(shortName(p))}</option>`).join('');
-  $('scanPages').innerHTML = scanPhotos.map((ph, i) => `<section class="scan-page" data-i="${i}"><h3>Fotka ${i + 1}</h3>` +
-    (ph.err ? `<div class="msg bad">${esc(ph.err)}</div>`
-      : !scanReady(ph) ? '<div class="msg bad">Na fotce jsem nenašel políčka lístku. Vyfoťte stránku rovněji a celou, při dobrém světle.</div>'
-      : `<div class="scan-guess"></div><div class="row"><label for="scanFirst${i}">Strana v levém sloupci fotky</label><select class="scan-first" id="scanFirst${i}">${opts}</select></div>` +
-        `<div class="scan-view" title="Klepnutím zvětšit / zmenšit"><canvas aria-label="Náhled rozpoznaných políček na fotce ${i + 1}"></canvas></div><ul class="scan-sum"></ul>`) +
-    '</section>').join('');
-  const readings = scanReadings(); let ms = 0, small = false;
-  scanPhotos.forEach((ph, i) => {
-    if (!scanReady(ph)) return;
-    const el = $('scanPages').querySelector(`[data-i="${i}"]`), map = scanMap(ph);
-    el.querySelector('.scan-guess').innerHTML = scanGuessHtml(ph, scanPhotos.filter(scanReady).indexOf(ph));
-    el.querySelector('.scan-first').value = cfg.parties[ph.s].n;
-    scanDraw(ph.res, map, el.querySelector('canvas'));
-    el.querySelector('.scan-sum').innerHTML = scanSummary(map, readings, i);
-    ms += ph.res.ms; small = small || ph.res.box[1] < 10;
-  });
-  const n = scanPhotos.filter(scanReady).length;
-  scanMsg(n && !small ? 'ok' : 'bad', n
-    ? `Vyhodnoceno: ${pl(n, 'fotka', 'fotky', 'fotek')} s políčky (${ms} ms). Zkontrolujte náhledy (klepnutím je zvětšíte) a klepněte na Použít na lístek.` +
-      (small ? ' Na některé fotce jsou políčka malá – pro spolehlivější výsledek foťte zblízka, jednu stránku.' : '')
-    : 'Na fotkách jsem nenašel políčka lístku.');
+  const used = scanUsed();
+  const opts = '<option value="">zjistit podle počtu políček</option>' + cfg.parties.map(p => `<option value="${p.n}">${p.n}. ${esc(shortName(p))}</option>`).join('');
+  $('scanPages').innerHTML = scanPhotos.map((ph, i) => !scanDone(ph) ? '' : `<section class="scan-page" data-i="${i}"><h3>Fotka ${i + 1}${ph.res ? ` – strany ${scanRange(ph)}` : ''}</h3>` +
+    (ph.err ? `<div class="msg bad" data-error="1">${esc(ph.err)}</div>` : '') +
+    `<div class="row"><label for="scanFirst${i}">Strana v levém sloupci fotky</label><select class="scan-first" id="scanFirst${i}">${opts}</select></div>` +
+    (ph.ann ? `<div class="scan-view" title="Klepnutím zvětšit / zmenšit"><img src="${ph.ann}" alt="Fotka ${i + 1} s rozpoznanými políčky: červeně s křížkem, zeleně prázdná"></div>` : '') +
+    (ph.res ? `<ul class="scan-sum">${scanSummary(ph, i, used)}</ul>` : '') + '</section>').join('');
+  scanPhotos.forEach((ph, i) => { const s = $('scanPages').querySelector(`[data-i="${i}"] .scan-first`); if (s) s.value = ph.first ?? ''; });
+  const n = scanPhotos.filter(ph => ph.res).length, bad = scanPhotos.filter(ph => ph.err).length;
+  if (scanPhotos.length && scanPhotos.every(scanDone)) scanMsg(n && !bad ? 'ok' : 'bad', (n ? `Přečteno: ${pl(n, 'fotka', 'fotky', 'fotek')}. Zkontrolujte náhledy (klepnutím je zvětšíte) a klepněte na Použít na lístek.` : '') +
+    (bad ? ` ${pl(bad, 'fotku', 'fotky', 'fotek')} se nepodařilo přečíst – viz níže.` : ''));
 }
-$('scanPages').addEventListener('click', e => {
-  const v = e.target.closest('.scan-view'); if (v) { v.classList.toggle('zoom'); return; }
-  const b = e.target.closest('[data-s]'); if (!b) return;
-  const ph = scanPhotos[+b.closest('.scan-page').dataset.i];
-  ph.s = +b.dataset.s; ph.manual = 'chip'; scanAssign(); scanShowAll(); scanThumbs();
-});
+$('scanPages').addEventListener('click', e => { const v = e.target.closest('.scan-view'); if (v) v.classList.toggle('zoom'); });
 $('scanPages').addEventListener('change', e => {
-  if (!e.target.classList.contains('scan-first')) return;
+  if (!e.target.classList.contains('scan-first') || scanBusy) return;
   const ph = scanPhotos[+e.target.closest('.scan-page').dataset.i];
-  ph.s = cfg.parties.findIndex(p => p.n === +e.target.value); ph.manual = 'select'; scanAssign(); scanShowAll(); scanThumbs();
+  ph.first = e.target.value ? +e.target.value : null;
+  scanRun([ph]);
 });
 $('scanApply').addEventListener('click', () => {
-  const used = [], readings = scanReadings();
-  scanPhotos.filter(scanReady).forEach(ph => {
-    const pi = scanPhotos.indexOf(ph);
-    for (const { p, head, cands } of scanMap(ph)) {
-      if (!p || readings.get(p.n).best.i !== pi) continue;
-      sel.parties.delete(p.n);
-      [...sel.cands].filter(k => pOf(k) === p.n).forEach(k => sel.cands.delete(k));
-      if (head === 'on') sel.parties.add(p.n);
-      cands.forEach((s, i) => { if (s === 'on' && p.cands[i]) sel.cands.add(`${p.n}:${p.cands[i].n}`); });
-      expanded.add(p.n); if (!used.includes(p.n)) used.push(p.n);
-    }
-    scanNext = ph.s + scanPlan(ph).used;
-  });
+  if (scanBusy) return;
+  const used = scanUsed(), applied = [];
+  for (const [n, i] of used) {
+    const c = scanPhotos[i].res.cols.find(x => x.n === n), p = scanParty(n), { party, cands } = scanMarks(c);
+    sel.parties.delete(n);
+    [...sel.cands].filter(k => pOf(k) === n).forEach(k => sel.cands.delete(k));
+    if (party) sel.parties.add(n);
+    cands.forEach(k => { if (p.cands[k - 1]) sel.cands.add(`${n}:${p.cands[k - 1].n}`); });
+    expanded.add(n); applied.push(n);
+  }
   scanClear(); scanClose(); changed();
-  toast(`Křížky z fotek přeneseny (strany ${used.sort((a, b) => a - b).join(', ')}). Zkontrolujte lístek a uložte.`);
+  toast(applied.length ? `Křížky z fotek přeneseny (strany ${applied.sort((a, b) => a - b).join(', ')}). Zkontrolujte lístek a uložte.` : 'Z fotek se nepřeneslo nic – žádný sloupec nebyl přečten.');
 });
 /* ===================== end of Rozpoznání lístku z fotek ===================== */
 })();

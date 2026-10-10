@@ -410,6 +410,13 @@ test('rozpracovaný lístek přežije obnovení stránky', async page => {
   assert.match(await statusText(page), /Strana 2 Strana B \+ 1 kand\. jiných stran/);
 });
 
+test('Vyfotit lístek: v aplikaci je ballot.py beze změny', async page => {
+  // the app runs the embedded copy; tools/embed-ballot.py copies the file after a change
+  const py = fs.readFileSync(path.join(ROOT, 'ballot.py'), 'utf8');
+  const embedded = await page.evaluate(() => document.getElementById('ballot-py').textContent.replace(/^\n/, ''));
+  assert.ok(embedded === py, 'index.html #ballot-py differs from ballot.py – run: python3 tools/embed-ballot.py');
+});
+
 test('PWA: manifest, ikony a service worker', async page => {
   const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8'));
   assert.equal(m.name, 'Sčítání hlasů Praha');

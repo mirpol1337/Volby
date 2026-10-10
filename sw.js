@@ -1,11 +1,14 @@
 /* Service worker: makes the app work offline after the first load.
    - app shell (page, manifest, icons): cache-first, precached on install
    - Google Fonts (CSS + font files): stale-while-revalidate at runtime
+   - Pyodide from cdn.jsdelivr.net (runs ballot.py for "Vyfotit lístek", ~65 MB): cache-first once
+     downloaded – the URLs carry the version, so photo recognition works offline after its first use
    Bump VERSION whenever index.html or the icons change, so phones pick up the new version. */
 'use strict';
-const VERSION = 'v7';
+const VERSION = 'v8';
 const SHELL_CACHE = `scitani-shell-${VERSION}`;
 const FONT_CACHE = `scitani-fonts-${VERSION}`;
+const PYODIDE_CACHE = 'scitani-pyodide-v0.26.4'; // not tied to VERSION: kept across app updates
 const SHELL = [
   './',
   './index.html',
@@ -17,6 +20,7 @@ const SHELL = [
   './icons/apple-touch-icon.png'
 ];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+const PYODIDE_PREFIX = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/';
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -27,7 +31,7 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  const keep = new Set([SHELL_CACHE, FONT_CACHE]);
+  const keep = new Set([SHELL_CACHE, FONT_CACHE, PYODIDE_CACHE]);
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k.startsWith('scitani-') && !keep.has(k)).map(k => caches.delete(k))))
@@ -70,10 +74,20 @@ async function staleWhileRevalidate(event) {
   return update.then(res => res || Response.error());
 }
 
+async function cacheFirst(request, name) {
+  const cache = await caches.open(name);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  const res = await fetch(request);
+  if (res.ok) cache.put(request, res.clone());
+  return res;
+}
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (FONT_HOSTS.includes(url.hostname)) { event.respondWith(staleWhileRevalidate(event)); return; }
+  if (req.url.startsWith(PYODIDE_PREFIX)) { event.respondWith(cacheFirst(req, PYODIDE_CACHE)); return; }
   if (url.origin === self.location.origin) event.respondWith(shellFirst(req));
 });

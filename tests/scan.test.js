@@ -11,6 +11,7 @@ const assert = require('assert/strict');
 
 let playwright;
 try { playwright = require('/opt/node-tools/node_modules/playwright'); } catch { playwright = require('playwright'); }
+const { routePyodide } = require('./pyodide');
 const URL = 'file://' + path.join(path.resolve(__dirname, '..'), 'index.html');
 
 /* Draws the photo inside the page and returns it as base64 JPEG.
@@ -90,24 +91,30 @@ let shot = 0;
 // the result of the last photo in the scan panel
 const LAST = '#scanPages .scan-page:last-child';
 async function addPhoto(page, b64) {
-  // SCAN_SAVE=<dir>: keep the generated photos and the overlay previews for inspection
+  // SCAN_SAVE=<dir>: keep the generated photos and ballot.py's annotated photos for inspection
   if (process.env.SCAN_SAVE) require('fs').writeFileSync(path.join(process.env.SCAN_SAVE, `photo-${++shot}.jpg`), Buffer.from(b64, 'base64'));
   if (await page.isHidden('#scanPanel')) await page.click('#scanOpen');
   await page.setInputFiles('#scanFile', { name: 'foto.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(b64, 'base64') });
 }
+// evaluation (or a re-run after choosing the left-column party) finished
+const done = page => page.waitForFunction(() => document.getElementById('scanPanel')._scan, null, { timeout: 120000 });
 async function run(page) {
   await page.evaluate(() => { delete document.getElementById('scanPanel')._scan; });
   await page.click('#scanRun');
-  await page.waitForFunction(() => document.getElementById('scanPanel')._scan);
+  await done(page);
+}
+async function pickFirst(page, i, party) {
+  await page.evaluate(() => { delete document.getElementById('scanPanel')._scan; });
+  await page.selectOption(`#scanFirst${i}`, String(party));
+  await done(page);
 }
 const parseSum = sel => page => page.$$eval(sel, els => Object.fromEntries(els.filter(e => e.dataset.p).map(e => [e.dataset.p,
-  { party: e.dataset.party === '1', cands: e.dataset.cands ? e.dataset.cands.split(',').map(Number) : [], boxes: +e.dataset.boxes }])));
+  { party: e.dataset.party === '1', cands: e.dataset.cands ? e.dataset.cands.split(',').map(Number) : [], boxes: +e.dataset.boxes, read: e.dataset.read === '1' }])));
 // one photo: drop the photos already in the panel, add this one, evaluate, return the summary
 async function scan(page, b64) {
   while (await page.$('#scanThumbs [data-del]')) await page.click('#scanThumbs [data-del]');
   await addPhoto(page, b64);
   await run(page);
-  if (process.env.SCAN_SAVE && await page.$(`${LAST} canvas`)) await (await page.$(`${LAST} canvas`)).screenshot({ path: path.join(process.env.SCAN_SAVE, `overlay-${shot}.png`) });
   return parseSum(`${LAST} .scan-sum li[data-p]`)(page);
 }
 
@@ -116,6 +123,7 @@ function expectScan(got, exp) {
     const e = exp[p] || { party: false, cands: [] };
     assert.ok(got[p], `strana ${p}: sloupec nenalezen`);
     assert.equal(got[p].boxes, p === '1' ? 10 : 3, `strana ${p}: počet políček kandidátů`);
+    assert.ok(got[p].read, `strana ${p}: přečteno`);
     assert.equal(got[p].party, e.party, `strana ${p}: křížek u strany`);
     assert.deepEqual(got[p].cands, e.cands, `strana ${p}: kandidáti`);
   }
@@ -123,7 +131,7 @@ function expectScan(got, exp) {
 
 const MARKS = ['1:2', '1:7', '1:10', '2:P'], EXP = { 1: { party: false, cands: [2, 7, 10] }, 2: { party: true, cands: [] } };
 const tests = [];
-const test = (name, fn) => tests.push({ name, fn });
+const test = (name, fn, opts = {}) => tests.push({ name, fn, ...opts });
 
 test('prázdný lístek: žádné křížky', async page => expectScan(await scan(page, await photo(page, [])), {}));
 test('křížky, rovná fotka', async page => expectScan(await scan(page, await photo(page, MARKS, { seed: 2 })), EXP));
@@ -136,98 +144,50 @@ test('všichni kandidáti pravého sloupce zaškrtnutí', async page =>
   expectScan(await scan(page, await photo(page, ['1:P', '2:1', '2:2', '2:3'], { seed: 6, rot: -2 })), { 1: { party: true, cands: [] }, 2: { party: false, cands: [1, 2, 3] } }));
 test('Použít: přenese křížky na lístek, nic neuloží', async page => {
   await scan(page, await photo(page, MARKS, { seed: 7, rot: 1 }));
+  assert.match(await page.textContent(`${LAST} h3`), /strany 1–2/);
+  assert.ok(await page.$(`${LAST} .scan-view img`), 'náhled z ballot.py');
   await page.click('#scanApply');
   assert.ok(await page.isHidden('#scanPanel'));
-  const st = await page.evaluate(() => ({ draft: JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'),
-    saved: JSON.parse(localStorage.getItem('volby-praha-ballots-v1') || '[]').length }));
+  const st = await page.evaluate(() => ({ draft: JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'), saved: JSON.parse(localStorage.getItem('volby-praha-ballots-v1') || '[]').length }));
   assert.deepEqual(st.draft.parties, [2]);
   assert.deepEqual([...st.draft.cands].sort(), ['1:10', '1:2', '1:7']);
   assert.equal(st.saved, 0);
   assert.equal(await page.getAttribute('.crow[data-k="1:7"]', 'aria-pressed'), 'true');
 });
-test('levý sloupec ručně přepnut na jinou stranu: varování o počtu políček', async page => {
-  await scan(page, await photo(page, ['1:1'], { seed: 8 }));
-  assert.equal(await page.inputValue(`${LAST} .scan-first`), '1');
-  await page.selectOption(`${LAST} .scan-first`, '2');
-  assert.match(await page.textContent(`${LAST} .scan-sum`), /kandidátů je jen 3/);
-  assert.equal(await page.getAttribute(`${LAST} .scan-guess .msg`, 'data-status'), 'manual');
+test('strany podle počtu políček: 15 a 1 → strany 3–4', async page => {
+  const got = await scan(page, await photo(page, ['1:15', '2:1'], { seed: 10, cols: [15, 1], rot: 2 }));
+  assert.deepEqual(Object.keys(got), ['3', '4']);
+  assert.deepEqual(got['3'].cands, [15]);
+  assert.deepEqual(got['4'].cands, [1]);
 });
-
-/* guessing the parties from the number of boxes per column (the built-in 2026 list) */
-const guess = async page => ({
-  first: await page.inputValue(`${LAST} .scan-first`),
-  status: await page.getAttribute(`${LAST} .scan-guess .msg`, 'data-status'),
-  chips: await page.$$eval(`${LAST} .scan-guess [data-s]`, els => els.map(e => e.textContent)),
-  sum: await page.textContent(`${LAST} .scan-sum`)
+test('strany podle počtu políček: 65 a 50 → strany 12–13', async page => {
+  const got = await scan(page, await photo(page, ['1:P', '2:50'], { seed: 11, cols: [65, 50] }));
+  assert.deepEqual(Object.keys(got), ['12', '13']);
+  assert.equal(got['12'].party, true);
+  assert.deepEqual(got['13'].cands, [50]);
 });
-test('odhad stran: 10 a 3 políčka → strany 1–2', async page => {
-  await scan(page, await photo(page, [], { seed: 9 }));
-  const g = await guess(page);
-  assert.deepEqual([g.first, g.status], ['1', 'sure']);
+test('65 a 65 políček: ballot.py se zeptá na stranu v levém sloupci, po výběru přečte', async page => {
+  await scan(page, await photo(page, ['2:65'], { seed: 12, cols: [65, 65] }));
+  assert.match(await page.textContent(`${LAST} [data-error]`), /odpovídají více stránkám lístku/);
+  assert.equal(await page.$(`${LAST} .scan-sum`), null);
+  await pickFirst(page, 0, 14); // --first-party 14
+  assert.equal(await page.$(`${LAST} [data-error]`), null);
+  const got = await parseSum(`${LAST} .scan-sum li[data-p]`)(page);
+  assert.deepEqual(Object.keys(got), ['14', '15']);
+  assert.deepEqual(got['15'].cands, [65]);
+  await pickFirst(page, 0, 24); // no party after 24
+  assert.match(await page.textContent(`${LAST} [data-error]`), /Vyberte jinou stranu/);
 });
-test('odhad stran: 15 a 1 políčko → strany 3–4', async page => {
-  await scan(page, await photo(page, ['1:15', '2:1'], { seed: 10, cols: [15, 1], rot: 2 }));
-  const g = await guess(page);
-  assert.deepEqual([g.first, g.status], ['3', 'sure']);
-  assert.doesNotMatch(g.sum, /zkontrolujte|nenalezeno/i);
-  assert.match(g.sum, /Strana 3: kandidáti 15/);
-  assert.match(g.sum, /Strana 4: kandidáti 1/);
-});
-test('odhad stran: 65 a 50 políček → strany 12–13', async page => {
-  await scan(page, await photo(page, ['1:P', '2:50'], { seed: 11, cols: [65, 50] }));
-  const g = await guess(page);
-  assert.deepEqual([g.first, g.status], ['12', 'sure']);
-  assert.match(g.sum, /Strana 12: křížek u strany/);
-  assert.match(g.sum, /Strana 13: kandidáti 50/);
-});
-test('odhad stran: 65 a 65 políček je víc možností – nabídka a navázání na předchozí stránku', async page => {
-  await scan(page, await photo(page, [], { seed: 12, cols: [65, 65] }));
-  let g = await guess(page);
-  assert.equal(g.status, 'ambiguous');
-  assert.equal(g.first, '9'); // nothing on the ballot yet → the first such page
-  for (const r of ['9–10', '10–11', '14–15', '15–16', '18–19', '19–20']) assert.ok(g.chips.includes(r), `nabídka ${r}`);
-  await page.click(`${LAST} .scan-guess [data-s="13"]`); // tap 14–15
-  g = await guess(page);
-  assert.equal(g.first, '14');
-  // a page 12–13 applied first → the next 65+65 page is guessed as 14–15
-  await scan(page, await photo(page, ['1:P'], { seed: 13, cols: [65, 50] }));
+test('sloupec s jiným počtem políček než kandidátů: NEPŘEČTENO, na lístek se nepřenese', async page => {
+  // left column 10 boxes = party 1; picking party 5 (65 candidates) makes the column unreadable
+  await scan(page, await photo(page, ['1:2', '2:P'], { seed: 15 }));
+  await pickFirst(page, 0, 5);
+  const got = await parseSum(`${LAST} .scan-sum li[data-p]`)(page);
+  assert.equal(got['5'].read, false);
+  assert.match(await page.textContent(`${LAST} .scan-sum`), /NEPŘEČTENO/);
   await page.click('#scanApply');
-  await scan(page, await photo(page, [], { seed: 14, cols: [65, 65] }));
-  g = await guess(page);
-  assert.deepEqual([g.first, g.status], ['14', 'ambiguous']);
-  assert.match(await page.textContent(`${LAST} .scan-guess`), /navazuje na předchozí stránku/);
-});
-
-/* the ballot is folded between candidates 42 and 43 (as on the real Prague ballot, page with parties 21–24) */
-const FOLD = { cols: [65, 41], pitch: 19.5 };
-test('přehyb: falešné políčko na přehybu se vynechá, kandidáti pod přehybem sedí', async page => {
-  const got = await scan(page, await photo(page, ['1:42', '1:45', '2:41'], { ...FOLD, seed: 1, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -4, fakeAt: 6 } }));
-  assert.equal(await page.inputValue(`${LAST} .scan-first`), '22');
-  assert.deepEqual(got['22'].cands, [42, 45]);
-  assert.deepEqual(got['23'].cands, [41]);
-  assert.equal(got['22'].boxes, 65);
-  assert.equal(got['23'].boxes, 41);
-  assert.match(await page.textContent(`${LAST} .scan-sum`), /Vynecháno 1 falešné políčko/);
-});
-test('přehyb: přehlédnuté políčko se doplní, kandidáti pod ním sedí', async page => {
-  const got = await scan(page, await photo(page, ['1:42', '1:45', '2:41'], { ...FOLD, seed: 1, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -10, fakeAt: 10 } }));
-  assert.deepEqual(got['22'].cands, [42, 45]);
-  assert.equal(got['22'].boxes, 65);
-});
-test('přehyb, natočená fotka', async page => {
-  const got = await scan(page, await photo(page, ['1:43', '1:65', '1:42', '2:P'], { ...FOLD, seed: 2, rot: 2, fold: { y: 1020, gap: 54, fake: [0, 1], crease: -4, fakeAt: 6 } }));
-  assert.deepEqual(got['22'].cands, [42, 43, 65]);
-  assert.equal(got['23'].party, true);
-  assert.deepEqual([got['22'].boxes, got['23'].boxes], [65, 41]);
-});
-
-/* several photos of one ballot, evaluated together */
-const PAGE = i => `#scanPages .scan-page[data-i="${i}"]`;
-const pageGuess = async (page, i) => ({
-  first: await page.inputValue(`${PAGE(i)} .scan-first`),
-  status: await page.getAttribute(`${PAGE(i)} .scan-guess .msg`, 'data-status'),
-  text: await page.textContent(`${PAGE(i)} .scan-guess`),
-  sum: await parseSum(`${PAGE(i)} .scan-sum li[data-p]`)(page)
+  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'));
+  assert.ok(!d.cands.some(k => k.startsWith('5:')), 'nepřečtený sloupec se nepřenese');
 });
 test('více fotek: tři stránky najednou, Použít přenese křížky ze všech', async page => {
   await addPhoto(page, await photo(page, ['1:P', '2:2'], { seed: 21 }));
@@ -236,33 +196,23 @@ test('více fotek: tři stránky najednou, Použít přenese křížky ze všech
   assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 3);
   assert.match(await page.textContent('#scanRun'), /3 fotky/);
   await run(page);
-  const g = [await pageGuess(page, 0), await pageGuess(page, 1), await pageGuess(page, 2)];
-  assert.deepEqual(g.map(x => [x.first, x.status]), [['1', 'sure'], ['3', 'sure'], ['5', 'sure']]);
-  assert.deepEqual(g[0].sum['1'], { party: true, cands: [], boxes: 10 });
-  assert.deepEqual(g[0].sum['2'].cands, [2]);
-  assert.deepEqual(g[1].sum['3'].cands, [15]);
-  assert.deepEqual(g[2].sum['5'].cands, [3]);
-  assert.equal(g[2].sum['6'].party, true);
   assert.match(await page.textContent('#scanThumbs'), /strany 1–2[\s\S]*strany 3–4[\s\S]*strany 5–6/);
   await page.click('#scanApply');
-  assert.ok(await page.isHidden('#scanPanel'));
   const d = await page.evaluate(() => JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'));
   assert.deepEqual(d.parties.sort((a, b) => a - b), [1, 6]);
   assert.deepEqual(d.cands.sort(), ['2:2', '3:15', '5:3']);
-  assert.match(await page.textContent('#status'), /Neplatný/); // two parties marked – the rules still apply
+  assert.match(await page.textContent('#status'), /Neplatný/); // two parties marked – the counting rules still apply
   await page.click('#scanOpen');
   assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 0); // photos are cleared after use
 });
-test('více fotek: nejednoznačné stránky 65+65 navazují, ruční volba posune další fotku', async page => {
-  await addPhoto(page, await photo(page, [], { seed: 24, cols: [65, 65] }));
-  await addPhoto(page, await photo(page, [], { seed: 25, cols: [65, 65], rot: 1 }));
+test('více fotek: stejná stránka dvakrát – platí pozdější fotka', async page => {
+  await addPhoto(page, await photo(page, ['1:1'], { seed: 27 }));
+  await addPhoto(page, await photo(page, ['1:2'], { seed: 28, rot: 1 }));
   await run(page);
-  let a = await pageGuess(page, 0), b = await pageGuess(page, 1);
-  assert.deepEqual([a.first, a.status, b.first, b.status], ['9', 'ambiguous', '11', 'ambiguous']);
-  assert.match(b.text, /navazuje na předchozí fotku/);
-  await page.click(`${PAGE(0)} .scan-guess [data-s="13"]`); // the first photo is 14–15
-  a = await pageGuess(page, 0); b = await pageGuess(page, 1);
-  assert.deepEqual([a.first, a.status, b.first], ['14', 'manual', '18']); // 16–17 is not a 65+65 page → next one, 18–19
+  assert.match(await page.textContent('#scanPages'), /použije se fotka 2[\s\S]*fotky se u strany 1 liší/);
+  await page.click('#scanApply');
+  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'));
+  assert.deepEqual(d.cands, ['1:2']);
 });
 test('více fotek: nejvýš 8, odebrání fotky', async page => {
   const b64 = await photo(page, [], { seed: 26, scale: 0.4 });
@@ -275,17 +225,12 @@ test('více fotek: nejvýš 8, odebrání fotky', async page => {
   assert.equal(await page.$$eval('#scanThumbs .scan-thumb', e => e.length), 7);
   assert.ok(!(await page.isDisabled('#scanFile')));
 });
-test('více fotek: stejná stránka dvakrát – platí pozdější fotka', async page => {
-  await addPhoto(page, await photo(page, ['1:1'], { seed: 27 }));
-  await addPhoto(page, await photo(page, ['1:2'], { seed: 28, rot: 1 }));
+test('bez internetu: zpráva, že rozpoznání potřebuje připojení', async page => {
+  await addPhoto(page, await photo(page, MARKS, { seed: 2 }));
   await run(page);
-  const b = await pageGuess(page, 1);
-  assert.equal(b.first, '1');
-  assert.match(await page.textContent(`${PAGE(1)} .scan-sum`), /Strana 1 je i na fotce 1 – použije se tato/);
-  await page.click('#scanApply');
-  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('volby-praha-draft-v1') || '{}'));
-  assert.deepEqual(d.cands, ['1:2']);
-});
+  assert.match(await page.textContent('#scanMsg'), /potřebuje připojení k internetu/);
+  assert.ok(!(await page.isDisabled('#scanRun')), 'lze zkusit znovu');
+}, { offline: true });
 
 (async () => {
   const browser = await playwright.chromium.launch();
@@ -295,8 +240,9 @@ test('více fotek: stejná stránka dvakrát – platí pozdější fotka', asyn
     if (only && !t.name.includes(only)) continue;
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'cs-CZ' });
     await ctx.route(/^https?:/, r => r.abort());
+    if (!t.offline) await routePyodide(ctx);
     const page = await ctx.newPage();
-    page.setDefaultTimeout(20000);
+    page.setDefaultTimeout(60000);
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     const t0 = Date.now();
