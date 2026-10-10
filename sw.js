@@ -3,7 +3,7 @@
    - Google Fonts (CSS + font files): stale-while-revalidate at runtime
    Bump VERSION whenever index.html or the icons change, so phones pick up the new version. */
 'use strict';
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL_CACHE = `scitani-shell-${VERSION}`;
 const FONT_CACHE = `scitani-fonts-${VERSION}`;
 const SHELL = [

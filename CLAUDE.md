@@ -58,19 +58,33 @@ Run both suites (and a couple of `SCAN_SEED` values after touching scan code) be
   `#scanGallery`), then **Vyhodnotit** runs `scanDetectFile()` on each photo that has no result yet.
   - `scanDetect()` (`scan-core:start/end`, pure-JS canvas) finds columns of boxes (square party box
     above ~2:1 candidate boxes) and the ink in each box;
-  - `scanCosts()` scores every possible left-column party per photo by matching detected box counts
-    per column to the known candidate counts;
+  - `scanFixHeads()` finds a party box the detector could not attach (party 21 has a long manifesto,
+    so its box is ~25 lines above candidate 1): on the row of the other columns' party boxes, where the
+    column's line of boxes meets it – a one-box stray "column" there is merged, otherwise
+    `scanFindSquare()` searches the photo locally (square outline, edges must not run on = no lines);
+  - `scanCosts()` scores every possible left-column party per photo by matching detected box counts to
+    the known candidate counts; a DP may leave out a column that fits no party (text, a frame line,
+    the shifted lower half of a folded page) – `costs.assign[s]` / `costs.used[s]`, read via `scanPlan()`
+    (a party picked in the select means plain column i → party s+i, no skipping);
   - `scanAssign()` picks the parties for all photos jointly (DP): ties (65+65 pages) are resolved by
     assuming photos follow each other in ballot order, starting at party 1 or after the page applied
-    last (`scanNext`); overlap with the previous photo is penalised; a user's choice (chip/select,
-    `ph.manual`) is fixed and moves the guesses of the other photos;
-  - `scanKeep()` reconciles each column with the party's candidate count: drops fake boxes at paper
-    folds (alone in a wide gap, flat), interpolates boxes the detector missed (gap of 2–3 pitches),
-    swaps the two when both occur;
-  - thresholds `SCAN_MARK` 0.08 / `SCAN_UNSURE` 0.035; unsure marks are never applied; the same party on
-    two photos → the later photo wins (warned); **Použít na lístek** only fills the draft, never saves.
-  Real-world data so far: one blank photo of page 1 and one marked screenshot of the page with parties
-  21–24 (fold between candidates 42/43). Real hand-drawn crosses are largely untested.
+    last (`scanNext`); overlap with the previous photo is penalised; a user's choice is kept fixed;
+  - `scanKeep()` reconciles a column with the party's candidate count, **only for near misses**
+    (≤ 3 or 10 % off – bigger mismatches are the wrong party, and repairing them made the app hang).
+    Spacing is only roughly even (2-line entries ~1 pitch, 3-line ~1.5, long manifestos more), so
+    every repair is verified against the photo: tall boxes are split only if printed boxes are found,
+    missed boxes are filled only where a printed square is found (`snapped`; unsnapped fills can be at
+    most "unsure"), fake boxes (fold creases) = flat / not a printed box / alone in a gap, and a fake
+    plus a missed box in one column are swapped;
+  - the same party on several photos → the reading needing the fewest repairs wins (`scanQuality`),
+    tie → later photo; equally good readings that differ are reported;
+  - thresholds `SCAN_MARK` 0.08 / `SCAN_UNSURE` 0.035; unsure marks are never applied; **Použít na
+    lístek** only fills the draft, never saves.
+  Real-world data so far: one blank photo of page 1, a screenshot of the page with parties 21–24
+  (fold between candidates 42/43) and 4 photos of a marked test ballot, page 21–24 (21: party + 4;
+  22: 22, 29; 23: 28; 24: party + 28, 35) – all read correctly. The photos are not in the repo.
+  Detection works on grayscale + a local (adaptive) threshold, so uneven light and shadows are handled
+  per region; a global black-and-white conversion would lose pale pencil crosses.
 
 ## Publishing
 
