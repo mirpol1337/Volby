@@ -4,8 +4,7 @@
    ballot-21-24: four photos of the same marked test ballot, page with parties 21–24, taken from
    different angles (photo 3 is skewed, the lower half of the folded page shifted sideways).
    Crosses: 21 party box + candidate 4; 22 candidates 22, 29; 23 candidate 28; 24 party box +
-   candidates 28, 35. Party 21's box sits ~25 lines above its candidates (long manifesto).
-   Every photo must also show all boxes of all four columns (14, 65, 41, 65) without repairs. */
+   candidates 28, 35. Party 21's box sits ~25 lines above its candidates (long manifesto). */
 'use strict';
 const path = require('path');
 const fs = require('fs');
@@ -33,9 +32,7 @@ async function evaluate(page, files) {
     first: el.querySelector('.scan-first') && el.querySelector('.scan-first').value,
     status: el.querySelector('.scan-guess .msg') && el.querySelector('.scan-guess .msg').dataset.status,
     parties: Object.fromEntries([...el.querySelectorAll('.scan-sum li[data-p]')].filter(li => li.dataset.p).map(li => [li.dataset.p,
-      { party: li.dataset.party === '1', cands: li.dataset.cands ? li.dataset.cands.split(',').map(Number) : [] }])),
-    boxes: Object.fromEntries([...el.querySelectorAll('.scan-sum li[data-p]')].filter(li => li.dataset.p).map(li => [li.dataset.p,
-      { n: +li.dataset.boxes, repaired: /Doplněno|Vynecháno|Nalezeno/.test(li.textContent) }]))
+      { party: li.dataset.party === '1', cands: li.dataset.cands ? li.dataset.cands.split(',').map(Number) : [] }]))
   })));
 }
 function expectPage(p, label) {
@@ -51,15 +48,6 @@ PHOTOS.forEach((f, i) => test(`fotka ${i + 1} samotná`, async page => {
   const [p] = await evaluate(page, [f]);
   expectPage(p, `fotka ${i + 1}`);
 }));
-// the column frames (scanFrames) supply the boxes the box detector misses: every box is found, none
-// has to be filled in or dropped by the repairs
-test('každá fotka: všechna políčka nalezena bez oprav', async page => {
-  const pages = await evaluate(page, PHOTOS);
-  pages.forEach((p, i) => {
-    for (const [n, k] of Object.entries({ 21: 14, 22: 65, 23: 41, 24: 65 }))
-      assert.deepEqual(p.boxes[n], { n: k, repaired: false }, `fotka ${i + 1}, strana ${n}: políčka`);
-  });
-});
 test('všechny čtyři fotky najednou, Použít na lístek', async page => {
   const pages = await evaluate(page, PHOTOS);
   assert.equal(pages.length, 4);

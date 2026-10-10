@@ -16,15 +16,10 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
   files): single pages, rotation/light/JPEG, folds with fake boxes, several photos per ballot.
 - `tests/real.test.js` + `tests/fixtures/ballot-21-24/` – real phone photos of a marked test ballot
   (page with parties 21–24, 4 angles); each photo alone and all four together must read exactly
-  21: party + 4; 22: 22, 29; 23: 28; 24: party + 28, 35, and every photo must show all boxes (14, 65, 41,
-  65) without repairs. `APP=<file>` runs them against another copy.
+  21: party + 4; 22: 22, 29; 23: 28; 24: party + 28, 35. `APP=<file>` runs them against another copy.
 - `tools/scan-photos.js` – prints what the app reads from given photos (one batch, like the app);
   `OUT=<dir>` saves the preview overlays. Use it first on any new photo from the user.
 - `tools/make_icons.py` – regenerates icons (Pillow).
-- `ballot.py` – standalone Python/OpenCV reader of one ballot photo (added by Ondra Červenka); the source
-  of the column-frame method ported to `scanFrames()`. Needs `pip install opencv-python-headless`; on
-  first run downloads the candidate list to `candidates.json` (seznamzpravy.cz) – or write that file from
-  the embedded list. Reads photos 1, 2, 4 of `ballot-21-24` right, misses party 21 on photo 3.
 - `README.md` – Czech user docs (GitHub Pages setup, home screen, rules, scan feature).
 
 ## Running and testing
@@ -32,7 +27,7 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 ```
 npm test           # 20 UI tests, ~15 s
 npm run test:scan  # 19 synthetic photo tests, ~25 s; SCAN_SEED=n other crosses, SCAN_SAVE=dir keeps images
-npm run test:real  # 6 tests on real ballot photos, ~25 s
+npm run test:real  # 5 tests on real ballot photos, ~10 s
 npm run test:all   # all three suites
 ```
 Tests use Playwright from `/opt/node-tools/node_modules/playwright` (falls back to `require('playwright')`);
@@ -73,15 +68,6 @@ treat it as a bug in the app, not as a slow machine.
   `#scanGallery`), then **Vyhodnotit** runs `scanDetectFile()` on each photo that has no result yet.
   - `scanDetect()` (`scan-core:start/end`, pure-JS canvas) finds columns of boxes (square party box
     above ~2:1 candidate boxes) and the ink in each box;
-  - `scanFrames()` (also in scan-core, the method of `ballot.py`): frames around the party columns =
-    large thresholded shapes whose convex hull is a quadrilateral → each column straightened by a
-    homography to 400 px width → threshold, keep the inside of the frame, remove long straight lines
-    (rest of the frame) → fill closed shapes, open with half a box → blobs at the left = boxes. Blobs are
-    only roughly placed, so `scanUseFrames()` combines: a frame groups scanDetect's columns lying on its
-    line of boxes (duplicate chains dropped, a box holding two frame boxes split), adds frame boxes
-    scanDetect missed only where `scanFindSquare()` finds the printed square, and a frame with no
-    scanDetect column becomes its own. No frames found (a crease joins them, e.g. the synthetic folds)
-    = scanDetect alone, as before;
   - `scanFixHeads()` finds a party box the detector could not attach (party 21 has a long manifesto,
     so its box is ~25 lines above candidate 1): on the row of the other columns' party boxes, where the
     column's line of boxes meets it – a one-box stray "column" there is merged, otherwise
@@ -135,7 +121,6 @@ treat it as a bug in the app, not as a slow machine.
 - A very small photo (≈ ⅓ size) can miss the last box of a short column (count warning shown).
 - Pages of 65-candidate lists only (e.g. 9–10, 14–15) look alike – the app assumes photos follow each
   other in ballot order and offers the alternatives; the user picks the right one.
-- Photo recognition takes ~2–3 s per photo on a desktop since `scanFrames()` (was ~0.7 s) – check on a phone.
 - The two unconfirmed legal edge cases under *Counting rules*.
 
 ## Publishing

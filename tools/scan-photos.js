@@ -29,7 +29,7 @@ if (!files.length) { console.error('Usage: node tools/scan-photos.js photo.jpg [
       first: el.querySelector('.scan-first') && el.querySelector('.scan-first').value,
       guess: el.querySelector('.scan-guess') ? el.querySelector('.scan-guess').innerText.replace(/\s+/g, ' ') : el.innerText.replace(/\s+/g, ' '),
       sum: el.querySelector('.scan-sum') ? [...el.querySelectorAll('.scan-sum li')].map(li => li.innerText.replace(/\s+/g, ' ')) : [],
-      cols: res[i] ? res[i].cols.map(c => `x=${Math.round(c.x)} ${c.frame ? `frame (+${c.framed}${c.framed ? " at " + c.cands.map((b, j) => b.framed ? j + 1 : 0).filter(Boolean) : ""})` : "no frame"}, ${c.head ? 'party box' + (c.head.found ? ' (searched)' : c.head.joined ? ' (joined)' : '') : 'no party box'} ${c.cands.length} boxes`) : [],
+      cols: res[i] ? res[i].cols.map(c => `x=${Math.round(c.x)} ${c.head ? 'party box' + (c.head.found ? ' (searched)' : c.head.joined ? ' (joined)' : '') : 'no party box'} ${c.cands.length} boxes`) : [],
       png: el.querySelector('canvas') ? el.querySelector('canvas').toDataURL('image/png') : null
     }));
   });
