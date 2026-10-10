@@ -11,7 +11,14 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
   candidate list and a verbatim copy of `ballot.py`. Sections are marked with `/* ---------- name ---------- */`.
 - `ballot.py` – photo recognition (Python + OpenCV, by Ondra Červenka): frames of the party columns →
   each column straightened → boxes = filled shapes surviving an opening → ink in the centre of each box;
-  parties from the box counts (`--first-party` otherwise). **The app runs this script unchanged** under
+  parties from the box counts (`--first-party` otherwise). **Box count rule** (the user's: nobody draws
+  extra boxes): `complete_boxes()` makes a column's candidate boxes match the party's count – a box
+  ~2× tall is split (a cross joined two boxes), a missed box is added where its outline (two near-full
+  rows a box height apart) is in the box strip outside the boxes found, or – when no outline survived –
+  where the gaps hold exactly as many ink patches as boxes are missing; otherwise NOT READ. Added
+  boxes are returned (`read_ballot` → `(party, marks, added)`), drawn with a double outline and listed
+  by the app for checking. `find_columns()` keeps a frame's inner edge when the outer one has other
+  corners (a stroke over the frame line joins the frame to the photo edge). **The app runs this script unchanged** under
   Pyodide – do not rewrite it in JS (the user's decision); improve recognition in `ballot.py` itself,
   then `python3 tools/embed-ballot.py` (a test checks the embedded copy). CLI: `python ballot.py photo.jpg
   --annotate out.jpg [--first-party 21]`; needs `pip install opencv-python-headless`; it downloads
@@ -26,6 +33,9 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 - `tests/real.test.js` + `tests/fixtures/ballot-21-24/` – real phone photos of a marked test ballot
   (page with parties 21–24, 4 angles); 21: party + 4; 22: 22, 29; 23: 28; 24: party + 28, 35. Photo 3
   reads 22–24 only (ballot.py misses the frame of party 21 there). `APP=<file>` uses another copy.
+- `tests/fixtures/ballot-21-24-sloppy/` – the same photos with sloppy crosses painted on by
+  `tools/sloppy-crosses.py` (generated with the ballot.py of commit f8fefa7; crosses listed in
+  `tests/real.test.js`); the old ballot.py left columns NOT READ on all four.
 - `tests/pyodide.js` – serves Pyodide from `tests/.pyodide/` (gitignored, ~72 MB) in place of the CDN;
   get it with `sh tools/get-pyodide.sh` (downloads the 300 MB release from GitHub, keeps 7 files).
 - `tools/scan-photos.js` – prints what the app reads from given photos (one batch, like the app);
@@ -40,7 +50,7 @@ votes per party and per candidate. UI and user-facing text are **Czech**; code c
 ```
 npm test           # 21 UI tests, ~15 s
 npm run test:scan  # 15 synthetic photo tests, ~90 s (Pyodide loads per test); SCAN_SEED=n, SCAN_SAVE=dir
-npm run test:real  # 5 tests on real ballot photos, ~55 s
+npm run test:real  # 9 tests on real ballot photos (4 with sloppy crosses), ~100 s
 npm run test:all   # all three suites
 ```
 The photo suites need `tests/.pyodide` (`sh tools/get-pyodide.sh`; cdn.jsdelivr.net is blocked in the
@@ -115,6 +125,10 @@ Run `npm run test:all` before pushing. **Always wrap test and tool runs in `time
 ## Open issues
 
 - Real hand-drawn crosses: only one marked test ballot (one page) so far; other pages and pens untested.
+  Sloppy crosses are simulated (`tools/sloppy-crosses.py`): with overshoot 10–50 % of a box 16 of 18
+  random photos read fully; failures left: a stroke through the centre of a neighbouring box that was
+  filled in by the count reads as a cross there (flagged for checking), and a box hidden in an ambiguous
+  place keeps its column NOT READ.
 - ballot.py: a column whose frame is not found is silently missing (party 21 on photo 3); a fold
   crease splits frames → wrong parties, all columns NEPŘEČTENO (nothing applied); pages of 65-candidate
   lists only (9–10, 14–15 …) need the left-column party picked by the user.

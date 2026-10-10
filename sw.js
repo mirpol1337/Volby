@@ -5,7 +5,7 @@
      downloaded – the URLs carry the version, so photo recognition works offline after its first use
    Bump VERSION whenever index.html or the icons change, so phones pick up the new version. */
 'use strict';
-const VERSION = 'v8';
+const VERSION = 'v9';
 const SHELL_CACHE = `scitani-shell-${VERSION}`;
 const FONT_CACHE = `scitani-fonts-${VERSION}`;
 const PYODIDE_CACHE = 'scitani-pyodide-v0.26.4'; // not tied to VERSION: kept across app updates

@@ -21,8 +21,8 @@ Fotky čte skript **`ballot.py`** (Python s OpenCV) – aplikace ho spouští be
 1. Vyfoťte stránky lístku, na kterých jsou křížky (**Vyfotit stránku**, opakovaně), nebo je vyberte z galerie – **až 8 fotek** jednoho lístku. Každou stránku zvlášť: zpředu, celé sloupce včetně rámečků a políček stran, rovně a při dobrém světle. Fotku lze křížkem v náhledu odebrat.
 2. Klepněte na **Vyhodnotit**. `ballot.py` najde rámečky sloupců, každý sloupec narovná, najde políčka a v nich křížky.
 3. Strany na fotce se poznají podle počtu políček ve sloupcích (např. 15 a 1 → strany 3–4). Stránky, kde mají všechny sloupce 65 kandidátů, vypadají stejně – tam vyberte **stranu v levém sloupci fotky** (výběr lze použít i pro opravu odhadu).
-4. Sloupec, ve kterém je jiný počet políček, než má strana kandidátů, je **NEPŘEČTENO** – křížky v něm zkontrolujte a zadejte ručně, na lístek se nepřenesou.
-5. Náhled ukazuje rozpoznaná políčka: červeně s křížkem, zeleně prázdná. Je-li stejná strana na více fotkách, platí pozdější fotka.
+4. Políček je ve sloupci vždy tolik, kolik má strana kandidátů (nikdo políčka nepřikresluje). Políčko, které neúhledný křížek spojil se sousedním nebo s textem, se proto doplní podle počtu kandidátů – v náhledu má dvojitý rámeček a aplikace ho vypíše ke kontrole. Když se políčko doplnit nedá jednoznačně, je sloupec **NEPŘEČTENO** – křížky v něm zkontrolujte a zadejte ručně, na lístek se nepřenesou.
+5. Náhled ukazuje rozpoznaná políčka: červeně s křížkem, zeleně prázdná, dvojitý rámeček = doplněné podle počtu kandidátů. Je-li stejná strana na více fotkách, platí pozdější fotka.
 6. **Použít na lístek** přenese křížky na rozpracovaný lístek (jen u přečtených stran) – nic se neukládá. Lístek zkontrolujete s papírem a uložíte jako obvykle.
 
 `ballot.py` lze spustit i samostatně: `python ballot.py fotka.jpg --annotate náhled.jpg [--first-party 21]` (potřebuje `opencv-python`). Po každé změně skriptu ho do aplikace zkopírujte: `python3 tools/embed-ballot.py`.

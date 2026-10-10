@@ -53,6 +53,23 @@ PHOTOS.forEach((f, i) => test(`fotka ${i + 1} samotná`, async page => {
   const [p] = await evaluate(page, [f]);
   expectPage(p, i);
 }));
+/* ballot-21-24-sloppy: the same photos with sloppy crosses painted on (tools/sloppy-crosses.py): thick
+   strokes running into the text, the next boxes and over the frame. The old ballot.py left columns
+   NOT READ (boxes it could not separate, a frame joined to the photo edge); every box must be there. */
+const SLOPPY = {
+  'sloppy-1.jpg': '21:10 22:13 22:61 24:25 24:39 24:60', 'sloppy-2.jpg': '21:10 21:12 22:32 22:35 23:6 24:24',
+  'sloppy-3.jpg': '21:14 22:19 22:35 24:16 24:3 24:57', 'sloppy-4.jpg': '21:7 22:5 22:30 22:50 23:12 23:33 24:3 24:44 24:60'
+};
+for (const [f, extra] of Object.entries(SLOPPY)) test(`neúhledné křížky: ${f}`, async page => {
+  const exp = JSON.parse(JSON.stringify(EXPECT));
+  for (const k of extra.split(' ')) { const [p, c] = k.split(':'); exp[p].cands.push(+c); }
+  const [p] = await evaluate(page, [path.join(__dirname, 'fixtures', 'ballot-21-24-sloppy', f)]);
+  assert.equal(p.error, '', 'chyba');
+  for (const [n, e] of Object.entries(exp)) {
+    e.cands.sort((a, b) => a - b);
+    assert.deepEqual(p.parties[n], { ...e, read: true }, `strana ${n}`);
+  }
+});
 test('všechny čtyři fotky najednou, Použít na lístek', async page => {
   const pages = await evaluate(page, PHOTOS);
   assert.equal(pages.length, 4);

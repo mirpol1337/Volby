@@ -12,7 +12,11 @@ How it works:
      boxes with the official candidate list (columns are expected left to right in
      ballot order; use --first-party if the counts are not distinctive enough).
 
-A column where the number of boxes found differs from the candidate list is reported as
+  5. nobody draws extra boxes: a column has exactly one box per candidate. Where fewer boxes
+     were found (usually crossed ones - a sloppy cross joins its box to the text around it),
+     the missing boxes are looked for in the gaps between the boxes found, and reported.
+
+A column where the number of boxes still differs from the candidate list is reported as
 "NOT READ" instead of guessing which candidate a mark belongs to.
 """
 import argparse
@@ -94,13 +98,17 @@ def find_columns(gray):
         s, d = quad.sum(axis=1), quad[:, 0] - quad[:, 1]
         corners = np.float32([quad[s.argmin()], quad[d.argmax()], quad[s.argmax()], quad[d.argmin()]])
         # A frame shows up twice, as the inner and the outer edge of its line - keep the
-        # outer one. A bigger rectangle around several frames (the sheet) is not a column.
+        # outer one, unless its corners are elsewhere: a cross whose stroke runs out over the
+        # frame line joins the frame to whatever it touches, only the inner edge stays clean.
+        # A bigger rectangle around several frames (the sheet) is not a column.
         enclosed = [i for i, (_, other) in enumerate(columns)
                     if cv2.pointPolygonTest(contour, tuple(map(float, other.mean(axis=0))), False) > 0]
         if not enclosed:
             columns.append((contour, corners))
         elif len(enclosed) == 1 and cv2.contourArea(contour) < 1.3 * cv2.contourArea(columns[enclosed[0]][0]):
-            columns[enclosed[0]] = (contour, corners)
+            inner = columns[enclosed[0]][1]
+            if np.abs(corners - inner).max() < 0.05 * np.linalg.norm(inner[1] - inner[0]):
+                columns[enclosed[0]] = (contour, corners)
     return sorted(columns, key=lambda column: column[1][:, 0].mean())
 
 
@@ -157,6 +165,82 @@ def fill_ratio(ink, box):
     return cv2.countNonZero(centre) / centre.size
 
 
+def complete_boxes(ink, boxes, count):
+    """Add the candidate boxes that were not found, so that the column has `count` of them.
+
+    Returns (boxes, indices of the added ones). The ballot has exactly one box per candidate,
+    so a missing box is one find_boxes() could not separate - nearly always a crossed one whose
+    strokes run into the text or into the next box:
+      1. strokes joining two boxes make one box twice as tall - split it;
+      2. a box lost in the strokes still leaves its printed outline in the narrow strip of the
+         boxes, where otherwise there is only paper between two boxes: look for two nearly full
+         rows (its top and bottom edge) a box height apart outside the boxes found;
+      3. see below.
+    A box put in the wrong place would shift the numbers of all candidates below it, so a box is
+    added only where its outline is seen, or where it is the only possible place.
+    """
+    head, cands = boxes[:1], list(boxes[1:])
+    if count - len(cands) <= 0 or len(cands) < 2:
+        return boxes, []
+    x0 = int(np.median([x for x, y, w, h in cands]))
+    bw = int(np.median([w for x, y, w, h in cands]))
+    bh = int(np.median([h for x, y, w, h in cands]))
+    added = []
+    for box in [box for box in cands if box[3] >= 1.6 * bh and box[2] <= 1.3 * bw]:
+        if len(cands) >= count:
+            break
+        x, y, w, h = box
+        k = min(round(h / bh), count - len(cands) + 1)
+        parts = [(x, int(y + j * (h - bh) / (k - 1)), w, bh) for j in range(k)]
+        cands.remove(box)
+        cands += parts
+        added += parts
+    missing = count - len(cands)
+    strip = ink[:, x0:x0 + bw]
+    row = (strip > 0).mean(axis=1)  # share of ink in every row of the strip
+    taken = np.zeros(len(row), bool)
+    for x, y, w, h in head + cands:
+        taken[max(0, y - 2):y + h + 3] = True
+    # only below the party box (or the first candidate box) and down to a few boxes after the last one
+    top = (head[0][1] + head[0][3]) if head else cands[0][1]
+    pitch = np.median(np.diff(sorted(y for x, y, w, h in cands)))
+    bottom = min(len(row) - 1, int(max(y + h for x, y, w, h in cands) + 3 * pitch))
+    # every place where a box of about the usual height has both edges, best first
+    used = np.concatenate([[0], np.cumsum(taken)])  # used[b + 1] - used[t] = rows taken in t..b
+    # (a box `height` rows tall has its edges in rows t and t + height - 1)
+    places = [(min(row[t], row[t + height - 1]), t, height)
+              for t in range(top, bottom) for height in range(bh - 2, bh + 3)
+              if t + height - 1 <= bottom and used[t + height] == used[t] and min(row[t], row[t + height - 1]) >= 0.5]
+    found = []
+    for score, t, height in sorted(places, reverse=True):
+        if len(found) >= missing:
+            break
+        if not taken[t:t + height].any():
+            found.append((x0, t, bw, height))
+            taken[max(0, t - 2):t + height + 2] = True
+    # 3. a box under heavy strokes can lose its printed lines in the thresholding. If the gaps hold
+    #    exactly as many patches of ink as boxes are still missing, those are the crossed boxes
+    #    (otherwise it is not clear which gap holds a box: the column stays NOT READ)
+    if len(found) < missing:
+        runs, y = [], top
+        while y <= bottom:
+            if taken[y] or row[y] < 0.15:
+                y += 1
+                continue
+            start = y
+            while y <= bottom and not taken[y] and row[y:y + 3].max() >= 0.15:
+                y += 1
+            if y - start >= 0.6 * bh:
+                runs.append((start, y))
+        if len(runs) == missing - len(found):
+            for start, end in runs:
+                t = max(start, min(end - bh, (start + end - bh) // 2))
+                found.append((x0, t, bw, min(bh, end - t)))
+    added += found
+    cands = sorted(cands + found, key=lambda box: box[1])
+    return head + cands, sorted(1 + cands.index(box) for box in added)
+
+
 def identify_parties(counts, parties, first_party=None):
     """Return the run of consecutive parties whose candidate counts fit the boxes found."""
     if first_party is not None:
@@ -174,49 +258,67 @@ def identify_parties(counts, parties, first_party=None):
 
 
 def read_ballot(path, parties, first_party=None, annotate=None):
-    """Return [(party, marks)] per column; marks[0] is the party box, marks[n] candidate n."""
+    """Return [(party, marks, added)] per column; marks[0] is the party box, marks[n] candidate n,
+    added = the numbers of the candidate boxes that were not found but filled in (see complete_boxes)."""
     image = cv2.imdecode(np.fromfile(path, np.uint8), cv2.IMREAD_COLOR)
     if image is None:
         sys.exit(f"cannot read image {path}")
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    columns = []  # (area of the frame, marks of its boxes) for every frame found
+    columns = []  # (area of the frame, ink, boxes, transform) for every frame found
     for contour, corners in find_columns(gray):
         ink, transform = rectify(gray, contour, corners)
-        boxes = find_boxes(ink)
-        marks = [fill_ratio(ink, box) > MARK_FILL for box in boxes]
-        columns.append((cv2.contourArea(contour), marks))
-
-        for (x, y, w, h), marked in zip(boxes, marks):
-            outline = np.float32([[[x, y], [x + w, y], [x + w, y + h], [x, y + h]]])
-            outline = cv2.perspectiveTransform(outline, np.linalg.inv(transform))
-            cv2.polylines(image, [np.int32(outline)], True, (0, 0, 255) if marked else (0, 170, 0), 2)
+        columns.append((cv2.contourArea(contour), ink, find_boxes(ink), transform))
 
     # A frame without boxes is some other rectangle in the photo - unless it is as large
     # as the party columns: then it is a column that could not be read.
-    typical = np.median([area for area, marks in columns if len(marks) > 1] or [0])
-    columns = [marks for area, marks in columns if len(marks) > 1 or 0.5 * typical < area < 2 * typical]
+    typical = np.median([area for area, _, boxes, _ in columns if len(boxes) > 1] or [0])
+    columns = [column for column in columns if len(column[2]) > 1 or 0.5 * typical < column[0] < 2 * typical]
 
-    if annotate:
-        cv2.imencode(Path(annotate).suffix, image)[1].tofile(annotate)
+    def draw(column, boxes, added=()):
+        _, ink, _, transform = column
+        for i, (x, y, w, h) in enumerate(boxes):
+            colour = (0, 0, 255) if fill_ratio(ink, (x, y, w, h)) > MARK_FILL else (0, 170, 0)
+            for grow in ((0, 4) if i in added else (0,)):  # a filled-in box gets a double outline
+                outline = np.float32([[[x - grow, y - grow], [x + w + grow, y - grow], [x + w + grow, y + h + grow], [x - grow, y + h + grow]]])
+                outline = cv2.perspectiveTransform(outline, np.linalg.inv(transform))
+                cv2.polylines(image, [np.int32(outline)], True, colour, 2)
+
+    def save():
+        if annotate:
+            cv2.imencode(Path(annotate).suffix, image)[1].tofile(annotate)
+
     if not columns:
+        save()
         sys.exit(f"{path}: no party columns found")
+    try:
+        found = identify_parties([max(len(column[2]) - 1, 0) for column in columns], parties, first_party)
+    except SystemExit:
+        for column in columns:
+            draw(column, column[2])
+        save()
+        raise
 
-    found = identify_parties([max(len(marks) - 1, 0) for marks in columns], parties, first_party)
-    return list(zip(found, columns))
+    result = []
+    for party, column in zip(found, columns):
+        boxes, added = complete_boxes(column[1], column[2], len(party["candidates"]))
+        draw(column, boxes, added)
+        result.append((party, [fill_ratio(column[1], box) > MARK_FILL for box in boxes], added))
+    save()
+    return result
 
 
 def print_result(columns):
     # A column with a wrong number of boxes was not read properly (a box was missed or
     # something else taken for one): its numbering cannot be trusted, so it is only reported.
     def readable(column):
-        party, marks = column
+        party, marks, _ = column
         return len(marks) - 1 == len(party["candidates"])
 
     unreadable = [column for column in columns if not readable(column)]
     columns = [column for column in columns if readable(column)]
 
-    selected = [party for party, marks in columns if marks[0]]
+    selected = [party for party, marks, _ in columns if marks[0]]
     print("Selected parties:")
     for party in selected:
         print(f"  {party['number']:>2}  {party['name']}")
@@ -224,7 +326,7 @@ def print_result(columns):
         print("  none")
 
     print("Selected candidates:")
-    with_candidates = [(party, marks) for party, marks in columns if any(marks[1:])]
+    with_candidates = [(party, marks) for party, marks, _ in columns if any(marks[1:])]
     for party, marks in with_candidates:
         ignored = "  (party selected - marks of its candidates do not count)" if marks[0] else ""
         print(f"  {party['number']:>2}  {party['name']}{ignored}")
@@ -234,11 +336,16 @@ def print_result(columns):
     if not with_candidates:
         print("  none")
 
+    filled = [(party, added) for party, _, added in columns if added]
+    if filled:
+        print("Boxes filled in by the candidate count (not found as boxes, double outline) - check them:")
+        for party, added in filled:
+            print(f"  {party['number']:>2}  candidates {', '.join(map(str, added))}")
     if len(selected) > 1:
         print(f"Note: {len(selected)} parties are marked - a ballot with more than one party marked is invalid.")
     if unreadable:
         print("NOT READ - check these by hand:")
-        for party, marks in unreadable:
+        for party, marks, _ in unreadable:
             print(f"  {party['number']:>2}  {party['name']}  "
                   f"(found {max(len(marks) - 1, 0)} of {len(party['candidates'])} candidate boxes)")
 
