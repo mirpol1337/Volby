@@ -238,6 +238,10 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
     .scan-sum .w { display: block; color: var(--warn); font-size: 13px; }
     .scan .actions2 { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
     #scanResult { display: flex; flex-direction: column; gap: 10px; }
+    .scan-guess { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+    .scan-guess:empty { display: none; }
+    .scan-guess .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .scan-guess .chips .btn[aria-pressed="true"] { background: var(--stripe); border-color: var(--stripe); color: #fff; }
     </style>
     <div class="scan-open">
       <button class="btn small" id="scanOpen" type="button" aria-expanded="false" aria-controls="scanPanel">Skenovat foto</button>
@@ -247,13 +251,14 @@ tr.crow-r td { font-size: 13px; background: var(--paper); }
       <span class="tag">Experimentální</span>
       <p class="hint">Vyfoťte jednu stránku lístku zpředu, celé sloupce, rovně a při dobrém světle. Sloupce se přiřadí stranám zleva doprava. Nic se neukládá – výsledek přenesete na lístek, zkontrolujete a uložíte jako obvykle.</p>
       <div class="row">
-        <label for="scanFirst">Strana v levém sloupci fotky</label>
+        <label for="scanFirst">Strana v levém sloupci fotky (po vyfocení se odhadne podle počtu políček)</label>
         <select id="scanFirst"></select>
         <label class="btn primary pick">Vyfotit / vybrat foto<input id="scanFile" type="file" accept="image/*" capture="environment"></label>
       </div>
       <div class="msg" id="scanMsg"></div>
       <div id="scanResult" hidden>
         <div class="scan-view" id="scanView" title="Klepnutím zvětšit / zmenšit"><canvas id="scanCanvas" aria-label="Náhled rozpoznaných políček"></canvas></div>
+        <div class="scan-guess" id="scanGuess"></div>
         <ul class="scan-sum" id="scanSum"></ul>
         <div class="actions2">
           <button class="btn primary" id="scanApply" type="button">Použít</button>
@@ -2462,6 +2467,64 @@ function scanDetect(g, gi, w, h) {
 
 const SCAN_MAX = 1400, SCAN_MARK = 0.08, SCAN_UNSURE = 0.035;
 let scanRes = null;
+// index of the party expected in the left column of the next photo (pages are usually photographed in order)
+let scanNext = 0;
+
+/* Which parties are on the photo? The ballot order and every party's number of candidates are known,
+   so the run of detected candidate boxes per column (e.g. 15, 1) usually fits only one place in the
+   list. A column cut off by the edge of the photo may show fewer boxes than the party has. Equal
+   fits (pages of 65-candidate lists) are ranked by closeness to the page expected next. */
+function scanGuess(res) {
+  const N = cfg.parties.length, bh = res.box[1];
+  if (!res.cols.length || !N) return null;
+  const obs = res.cols.map(c => {
+    const first = c.head || c.cands[0], last = c.cands[c.cands.length - 1];
+    return { d: c.cands.length, cut: (!!last && last.y1 > res.h - bh * 2.5) || (!c.head && !!first && first.y0 < bh * 2.5) };
+  });
+  const opts = [];
+  for (let s = 0; s < N; s++) {
+    let cost = 0;
+    obs.forEach((o, i) => {
+      const p = cfg.parties[s + i];
+      if (!p) { cost += 8; return; }
+      const diff = p.cands.length - o.d;
+      if (diff === 0) return;
+      cost += diff > 0 && o.cut ? 0.3 : Math.min(8, Math.abs(diff));
+    });
+    opts.push({ s, cost });
+  }
+  const prior = sel.parties.size || sel.cands.size ? Math.min(scanNext, N - 1) : 0;
+  opts.sort((a, b) => a.cost - b.cost || Math.abs(a.s - prior) - Math.abs(b.s - prior) || a.s - b.s);
+  const best = opts[0];
+  const near = opts.filter(o => o.cost <= best.cost + 0.5);
+  return {
+    counts: obs.map(o => o.d), best, prior,
+    status: best.cost > obs.length * 1.5 ? 'poor' : near.length > 1 ? 'ambiguous' : 'sure',
+    options: (near.length > 1 ? near : opts.slice(0, 3)).slice(0, 8)
+  };
+}
+const scanRange = (s, k) => {
+  const a = cfg.parties[s], b = cfg.parties[Math.min(cfg.parties.length - 1, s + k - 1)];
+  return a === b ? `${a.n}` : `${a.n}–${b.n}`;
+};
+function scanGuessShow() {
+  const G = scanRes && scanRes.guess, el = $('scanGuess');
+  if (!G) { el.innerHTML = ''; return; }
+  const k = scanRes.cols.length, cur = cfg.parties.findIndex(p => p.n === +$('scanFirst').value);
+  const counts = G.counts.join(', '), bestR = scanRange(G.best.s, k);
+  let text;
+  if (scanRes.manual) text = `Strany vybrány ručně. Odhad podle počtu políček (${counts}) byl ${bestR}.`;
+  else if (G.status === 'sure') text = `Podle počtu políček (${counts}) jsou na fotce strany <b>${bestR}</b>.`;
+  else if (G.status === 'ambiguous') text = `Počty políček (${counts}) odpovídají více stránkám. Vybral jsem <b>${bestR}</b>${G.best.s === G.prior ? ' (navazuje na předchozí stránku)' : ''} – podle čísla strany na lístku případně klepněte na jinou:`;
+  else text = `Počty políček (${counts}) neodpovídají přesně žádné stránce, nejblíž jsou strany <b>${bestR}</b>. Zkontrolujte číslo strany na lístku:`;
+  const chips = G.status === 'sure' && !scanRes.manual ? '' : '<div class="chips">' + G.options.map(o =>
+    `<button class="btn small" type="button" data-s="${o.s}" aria-pressed="${o.s === cur}">${scanRange(o.s, k)}</button>`).join('') + '</div>';
+  el.innerHTML = `<div class="msg ${G.status === 'sure' && !scanRes.manual ? 'ok' : 'bad'}" data-status="${scanRes.manual ? 'manual' : G.status}">${text}</div>${chips}`;
+}
+$('scanGuess').addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); if (!b || !scanRes) return;
+  $('scanFirst').value = cfg.parties[+b.dataset.s].n; scanRes.manual = false; scanShow();
+});
 function scanFillSelect() {
   const el = $('scanFirst'), v = el.value;
   el.innerHTML = cfg.parties.map(p => `<option value="${p.n}">${p.n}. ${esc(shortName(p))}</option>`).join('');
@@ -2478,7 +2541,7 @@ function scanClose() {
 }
 $('scanCancel').addEventListener('click', scanClose);
 $('scanView').addEventListener('click', () => $('scanView').classList.toggle('zoom'));
-$('scanFirst').addEventListener('change', () => { if (scanRes) scanShow(); });
+$('scanFirst').addEventListener('change', () => { if (scanRes) { scanRes.manual = true; scanShow(); } });
 
 function scanLoad(file) {
   return new Promise((ok, fail) => {
@@ -2510,6 +2573,9 @@ $('scanFile').addEventListener('change', async e => {
     const res = scanDetect(g, gi, w, h);
     res.ms = Math.round(performance.now() - t0); res.scale = k; res.canvas = cv;
     scanRes = res;
+    scanFillSelect();
+    res.guess = scanGuess(res);
+    if (res.guess) $('scanFirst').value = cfg.parties[res.guess.best.s].n;
     $('scanPanel')._scan = res; // for automated tests
     scanShow();
   } catch (err) { scanMsg('bad', err.message || String(err)); }
@@ -2528,6 +2594,7 @@ function scanMap() {
 }
 function scanShow() {
   const res = scanRes, map = scanMap();
+  scanGuessShow();
   // overlay preview, cropped to the detected columns (with room for labels and candidate names)
   const src = res.canvas, all = res.cols.flatMap(cl => [cl.head, ...cl.cands]).filter(Boolean);
   let X0 = 0, Y0 = 0, X1 = src.width, Y1 = src.height;
@@ -2582,7 +2649,8 @@ function scanShow() {
 }
 $('scanApply').addEventListener('click', () => {
   if (!scanRes) return;
-  const used = [];
+  const used = [], first = cfg.parties.findIndex(p => p.n === +$('scanFirst').value);
+  if (first >= 0) scanNext = first + scanRes.cols.length;
   for (const { p, head, cands } of scanMap()) {
     if (!p) continue;
     sel.parties.delete(p.n);

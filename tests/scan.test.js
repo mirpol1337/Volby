@@ -27,18 +27,20 @@ async function photo(page, marks, v = {}) {
     c.fillStyle = '#d0307a'; c.fillRect(40, 0, 34, H);
     c.fillStyle = '#333'; c.font = '20px sans-serif'; c.fillText('Hlavní město Praha', 110, 70);
     c.strokeStyle = '#333'; c.lineWidth = 1.6;
-    const box = [], cols = [[110, 10], [620, 3]];
+    // v.cols: candidate boxes per column (default parties 1 and 2: 10 and 3); long lists get a tighter pitch
+    const box = [], cols = (v.cols || [10, 3]).map((n, i) => [110 + i * 510, n]);
     cols.forEach(([x, n], ci) => {
       c.strokeRect(x, 100, 480, 1450);
       const bx = x + 14, bw = 34;
       box.push({ key: `${ci + 1}:P`, x: bx, y: 114, w: bw, h: 34 });
       c.font = 'bold 16px sans-serif'; c.fillText(`STRANA ${ci + 1} – NÁZEV STRANY`, bx + 50, 128);
       c.font = '13px sans-serif'; c.fillText(`vylosované číslo: ${ci + 1}`, bx + 50, 148);
+      const pitch = Math.min(25, 1340 / n), bh = Math.min(17, Math.round(pitch * 0.7));
       for (let i = 0; i < n; i++) {
-        const y = 180 + i * 25;
-        box.push({ key: `${ci + 1}:${i + 1}`, x: bx, y, w: bw, h: 17 });
+        const y = Math.round(180 + i * pitch);
+        box.push({ key: `${ci + 1}:${i + 1}`, x: bx, y, w: bw, h: bh });
         c.font = 'bold 13px sans-serif'; c.fillText(`${i + 1}. Jméno Příjmení, ${30 + i} let`, bx + 46, y + 9);
-        c.font = '12px sans-serif'; c.fillText('Praha 1, bez politické příslušnosti', bx + 60, y + 21);
+        if (pitch >= 24) { c.font = '12px sans-serif'; c.fillText('Praha 1, bez politické příslušnosti', bx + 60, y + 21); }
       }
     });
     box.forEach(b => c.strokeRect(b.x, b.y, b.w, b.h));
@@ -117,11 +119,57 @@ test('Použít: přenese křížky na lístek, nic neuloží', async page => {
   assert.equal(st.saved, 0);
   assert.equal(await page.getAttribute('.crow[data-k="1:7"]', 'aria-pressed'), 'true');
 });
-test('levý sloupec = jiná strana: varování o počtu políček', async page => {
-  await page.click('#scanOpen');
-  await page.selectOption('#scanFirst', '2');
+test('levý sloupec ručně přepnut na jinou stranu: varování o počtu políček', async page => {
   await scan(page, await photo(page, ['1:1'], { seed: 8 }));
+  assert.equal(await page.inputValue('#scanFirst'), '1');
+  await page.selectOption('#scanFirst', '2');
   assert.match(await page.textContent('#scanSum'), /kandidátů je jen 3/);
+  assert.equal(await page.getAttribute('#scanGuess .msg', 'data-status'), 'manual');
+});
+
+/* guessing the parties from the number of boxes per column (the built-in 2026 list) */
+const guess = async page => ({
+  first: await page.inputValue('#scanFirst'),
+  status: await page.getAttribute('#scanGuess .msg', 'data-status'),
+  chips: await page.$$eval('#scanGuess [data-s]', els => els.map(e => e.textContent)),
+  sum: await page.textContent('#scanSum')
+});
+test('odhad stran: 10 a 3 políčka → strany 1–2', async page => {
+  await scan(page, await photo(page, [], { seed: 9 }));
+  const g = await guess(page);
+  assert.deepEqual([g.first, g.status], ['1', 'sure']);
+});
+test('odhad stran: 15 a 1 políčko → strany 3–4', async page => {
+  await scan(page, await photo(page, ['1:15', '2:1'], { seed: 10, cols: [15, 1], rot: 2 }));
+  const g = await guess(page);
+  assert.deepEqual([g.first, g.status], ['3', 'sure']);
+  assert.doesNotMatch(g.sum, /zkontrolujte|nenalezeno/i);
+  assert.match(g.sum, /Strana 3: kandidáti 15/);
+  assert.match(g.sum, /Strana 4: kandidáti 1/);
+});
+test('odhad stran: 65 a 50 políček → strany 12–13', async page => {
+  await scan(page, await photo(page, ['1:P', '2:50'], { seed: 11, cols: [65, 50] }));
+  const g = await guess(page);
+  assert.deepEqual([g.first, g.status], ['12', 'sure']);
+  assert.match(g.sum, /Strana 12: křížek u strany/);
+  assert.match(g.sum, /Strana 13: kandidáti 50/);
+});
+test('odhad stran: 65 a 65 políček je víc možností – nabídka a navázání na předchozí stránku', async page => {
+  await scan(page, await photo(page, [], { seed: 12, cols: [65, 65] }));
+  let g = await guess(page);
+  assert.equal(g.status, 'ambiguous');
+  assert.equal(g.first, '9'); // nothing on the ballot yet → the first such page
+  for (const r of ['9–10', '10–11', '14–15', '15–16', '18–19', '19–20']) assert.ok(g.chips.includes(r), `nabídka ${r}`);
+  await page.click('#scanGuess [data-s="13"]'); // tap 14–15
+  g = await guess(page);
+  assert.equal(g.first, '14');
+  // a page 12–13 applied first → the next 65+65 page is guessed as 14–15
+  await scan(page, await photo(page, ['1:P'], { seed: 13, cols: [65, 50] }));
+  await page.click('#scanApply');
+  await scan(page, await photo(page, [], { seed: 14, cols: [65, 65] }));
+  g = await guess(page);
+  assert.deepEqual([g.first, g.status], ['14', 'ambiguous']);
+  assert.match(await page.textContent('#scanGuess'), /navazuje na předchozí stránku/);
 });
 
 (async () => {
